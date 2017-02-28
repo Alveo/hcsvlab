@@ -1,4 +1,6 @@
 HcsvlabWeb::Application.routes.draw do
+  use_doorkeeper
+
   # This constraint specify that we are going to accept any character except '/' for an item id.
   catalogRoutesConstraints = {:itemId => /[^\/]+/}
   catalogRoutesConstraintsIncludingJson = {:itemId => /(?:(?!\.json|\/).)+/i}
@@ -66,6 +68,9 @@ HcsvlabWeb::Application.routes.draw do
   devise_for :users, controllers: {registrations: "user_registers", passwords: "user_passwords"}
 
   devise_scope :user do
+    # KL: oauth2
+    get "/users/sign_in", :to => "devise/sessions#oauth2_new", :as => 'oauth2_sign_in'
+
     get "/users/aaf_sign_in", :to => "devise/sessions#aaf_new"
     get "/account/", :to => "user_registers#index" #allow users to edit their own password
     get "/account/edit", :to => "user_registers#edit" #allow users to edit their own password

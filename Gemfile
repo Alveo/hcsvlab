@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+ruby "2.1.4"
 gem 'rails', '~> 3.2.18'
 gem 'pg'
 
@@ -52,7 +53,15 @@ group :test do
   gem "selenium-webdriver"
   gem 'spreewald'
   gem "json-compare", '0.1.8'
+  # KL: 12/12
+  gem 'test-unit', '~> 3.0'
 end
+
+# KL: for OAuth2
+gem 'doorkeeper'
+
+# KL
+# gem 'rdf', '1.1.3'
 
 gem 'newrelic_rpm'
 
@@ -68,7 +77,10 @@ gem "email_spec", :group => :test
 gem "cancan"
 
 # blacklight and hydra gems
-gem 'blacklight'
+#  KL: only load 4.2.1
+# gem 'blacklight'
+gem 'blacklight', "4.2.1"
+
 gem 'hydra-head', "~>6.0.0"
 gem 'jettywrapper'
 
@@ -110,7 +122,9 @@ gem 'capistrano', '2.15.4'
 gem "capistrano_colors"
 
 gem 'tinymce-rails'
-gem 'rubyzip', '0.9.9'
+# KL 13/12/2016
+# gem 'rubyzip', '0.9.9'
+gem 'rubyzip'
 gem 'bagit'
 
 gem 'google-analytics-rails'
