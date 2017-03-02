@@ -4,7 +4,7 @@ class UserRegistersController < Devise::RegistrationsController
   # prepend_before_filter :authenticate_scope!, except: [:create, :new]
   before_filter :authenticate_user!, except: [:create, :new]
     
-  prepend_before_filter :check_oauth_token!, except: [:create, :new]
+  
 
   def profile
 
