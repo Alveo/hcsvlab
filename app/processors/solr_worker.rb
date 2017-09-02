@@ -131,7 +131,7 @@ private
     item.documents.each do |document|
       delete_document_from_sesame(document, repository)
     end
-    delete_item_from_sesame(item, repository)
+    issue_sesame_item_delete(item, repository)
   end
 
   #
@@ -154,7 +154,7 @@ private
   end
   
   # Deletes statements with the item's URI from Sesame
-  def delete_item_from_sesame(item, repository)
+  def issue_sesame_item_delete(item, repository)
     item_subject = RDF::URI.new(item.uri)
     item_query = RDF::Query.new do
       pattern [item_subject, :predicate, :object]
