@@ -27,34 +27,41 @@
 .row-fluid
   .span4
     - if current_user.is_superuser?
-      = label_tag :collection_owner, "Collection Owner (full name):"
-      = select_tag :collection_owner, options_for_select(@approved_owners, @collection_owner.id.to_s), id: 'owner_select'
+      = label_tag :collection_alveo_owner, "Collection Alveo Owner (full name):"
+      = select_tag :collection_alveo_owner, options_for_select(@approved_owners, @collection_alveo_owner.id.to_s), id: 'owner_select'
     - else
-      = label_tag :collection_owner, "Collection Owner:"
-      = text_field_tag :collection_owner, @collection_owner.full_name, disabled: true
+      = label_tag :collection_alveo_owner, "Collection Alveo Owner:"
+      = text_field_tag :collection_alveo_owner, @collection_alveo_owner.full_name, disabled: true
   .span4
-    = label_tag :collection_creation_date, 'Collection Creation Date:'
-    = text_field_tag :collection_creation_date, @collection_creation_date, placeholder: 'dd/mm/yyyy'
+    %label_tag{:for => "collection_legal_owner"}
+      Collection Legal Owner:
+      %a{:href => "http://id.loc.gov/vocabulary/relators/own.html", :target => "_blank"}
+        %i.icon-question-sign
+    = text_field_tag :collection_legal_owner, @collection_legal_owner, placeholder: 'people or organisation name'
 
 .row-fluid
   .span4
     = label_tag :licence_id, 'Licence:'
     = select_tag :licence_id, options_for_select(@collection_licences.map {|l| [l.name, l.id]}, @collection.nil? ? LicenceHelper.licence(nil).id : @collection.licence_id), include_blank: false
   .span4
-    = label_tag :approval_required, 'Privacy: '
-    = check_box_tag :approval_required, 'private', @approval_required == 'private'
-    Approval required for collection access
+    = label_tag :collection_creation_date, 'Collection Creation Date:'
+    = text_field_tag :collection_creation_date, @collection_creation_date, placeholder: 'dd/mm/yyyy'
 
 .row-fluid
   .span4
-  .span3
+    = label_tag :approval_required, 'Privacy: '
+    = check_box_tag :approval_required, 'private', @approval_required == 'private'
+    Approval required for collection access
+  .span4
     = label_tag :status_text, 'Status:'
     = select_tag :collection_status, options_for_select(@collection_status_options, @collection.nil? ? 'RELEASED' : @collection.status)
-  .span2
+
+.row-fluid
+  .span4
     - if !@collection.nil? && @collection.status == 'DRAFT'
       Draft collection
-      = link_to "Manage", "/admin/collection_requests", :class => "btn btn-primary"
-
+      = link_to "Permission Manage", "/admin/collection_requests", :class => "btn btn-primary"
+  .span4
 
 :javascript
   $('#collection_creation_date').datepicker({

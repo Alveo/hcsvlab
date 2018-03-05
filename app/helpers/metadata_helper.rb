@@ -39,6 +39,7 @@ module MetadataHelper
   RDF_BASE_URI ||= 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
   LOC_BASE_URI ||= 'http://www.loc.gov/loc.terms/relators/'
   ALVEO_BASE_URI ||= 'http://alveo.edu.au/vocabulary/'
+  ALVEO_SCHEMA_URI ||= 'http://alveo.edu.au/schema/'
 
   AUSTALK_BASE_URI ||= 'http://ns.austalk.edu.au/'
 
@@ -113,7 +114,7 @@ module MetadataHelper
 
   # KL: compact prefix
   PFX_TITLE ||= "dcterms:title"
-  PFX_OWNER ||= "marcrel:OWN"
+  PFX_LEGAL_OWNER ||= "marcrel:OWN"
   PFX_LANGUAGE ||= "dcterms:language"
   PFX_CREATION_DATE ||= "dcterms:created"
   PFX_CREATOR ||= "dcterms:creator"

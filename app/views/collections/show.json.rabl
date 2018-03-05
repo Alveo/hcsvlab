@@ -5,10 +5,6 @@ node(:metadata) do
   hash = {}
   collection_show_fields(@collection).each do |field|
     key = field.first[0]
-    if key == "OLAC_subject_facet"
-      key = "Subject"
-    end
-
     value = field.first[1].to_s
 
     hash[key] = value

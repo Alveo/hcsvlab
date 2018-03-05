@@ -212,7 +212,8 @@ class CollectionsController < ApplicationController
 
     @collection_name = params[:collection_name]
     @collection_title = params[:collection_title]
-    @collection_owner = params[:collection_owner]
+    @collection_alveo_owner = current_user
+    @collection_legal_owner = params[:collection_legal_owner]
     @collection_text = params[:collection_text]
     @collection_abstract = params[:collection_abstract].nil? ? "" : params[:collection_abstract].gsub(/\r\n/, ' ').gsub(/"/, '\"')
     @approval_required = params[:approval_required]
@@ -245,7 +246,7 @@ class CollectionsController < ApplicationController
       @collection_title = nil
       @collection_creation_date = nil
       @collection_creator = nil
-      @collection_owner = nil
+      @collection_legal_owner = nil
       @collection_abstract = ""
       @collection_text = nil
       @approval_required = 'public'
@@ -257,7 +258,8 @@ class CollectionsController < ApplicationController
       @additional_metadata_options = metadata_names_mapping
 
       @collection_creator = current_user.full_name + "(#{current_user.email})"
-      @collection_owner = current_user
+      @collection_alveo_owner = current_user
+      @collection_legal_owner = current_user.full_name
 
       if current_user.is_superuser?
         @approved_owners = approved_collection_owners
@@ -285,6 +287,7 @@ class CollectionsController < ApplicationController
           '@context' => JsonLdHelper.default_context,
           '@type' => 'dcmitype:Collection',
           MetadataHelper::CREATOR.to_s => @collection_creator,
+          MetadataHelper::LOC_OWNER.to_s => @collection_legal_owner,
           MetadataHelper::LICENCE.to_s => (lic ? lic.name : ""),
           MetadataHelper::OLAC_SUBJECT.to_s => @olac_subject,
           MetadataHelper::ABSTRACT.to_s => @collection_abstract
@@ -467,7 +470,7 @@ class CollectionsController < ApplicationController
 
     @collection = Collection.find_by_name(params[:id])
 
-    @collection_owner = @collection.owner
+    @collection_alveo_owner = @collection.owner
 
     access_rlt = CollectionsHelper.collection_accessible?(@collection, current_user)
 
@@ -540,6 +543,7 @@ class CollectionsController < ApplicationController
     end
 
     @collection_title = properties.delete(MetadataHelper::PFX_TITLE)
+    @collection_legal_owner = properties.delete(MetadataHelper::PFX_LEGAL_OWNER)
     @collection_language = properties.delete(MetadataHelper::PFX_LANGUAGE)
     @collection_languages = Language.all.map {|l| ["#{l.code} - #{l.name}", "#{l.code} - #{l.name}"]}.to_h
 
@@ -610,6 +614,7 @@ class CollectionsController < ApplicationController
         MetadataHelper::LANGUAGE.to_s => params[:collection_language].nil? ? '' : params[:collection_language],
         MetadataHelper::CREATED.to_s => params[:collection_creation_date].nil? ? '' : params[:collection_creation_date],
         MetadataHelper::CREATOR.to_s => params[:collection_creator].nil? ? '' : params[:collection_creator],
+        MetadataHelper::LOC_OWNER.to_s => params[:collection_legal_owner].nil? ? '' : params[:collection_legal_owner],
         MetadataHelper::OLAC_SUBJECT.to_s => params[:olac_subject].nil? ? '' : params[:olac_subject],
         MetadataHelper::LICENCE.to_s => lic.name,
         MetadataHelper::ABSTRACT.to_s => params[:collection_abstract].nil? ? '' : params[:collection_abstract]
@@ -624,10 +629,10 @@ class CollectionsController < ApplicationController
 
       # check owner
       owner = current_user
-      if !params[:collection_owner].nil?
-        owner = User.find_by_id(params[:collection_owner])
+      if !params[:collection_alveo_owner].nil?
+        owner = User.find_by_id(params[:collection_alveo_owner])
         if owner.nil?
-          msg = "Can't find collection owner by '#{params[:collection_owner]}'"
+          msg = "Can't find collection owner by '#{params[:collection_alveo_owner]}'"
           redirect_to collection_path(id: name), notice: msg
 
           return

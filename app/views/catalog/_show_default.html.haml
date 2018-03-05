@@ -125,7 +125,9 @@
           %td= field
           %td
             - if !document[:contribution_id].nil?
-              %a{:href => contrib_show_path(document[:contribution_id])}= Contribution.find_by_id(document[:contribution_id]).name
+              - contribution = Contribution.find_by_id(document[:contribution_id])
+              - if !contribution.nil?
+                %a{:href => contrib_show_path(document[:contribution_id])}= contribution.name
 
           - if can?(:delete_document_via_web_app, @item.collection) && !@item.collection.is_finalised?
             - doc = @item.documents.find_by_file_name(document[MetadataHelper::IDENTIFIER].to_s)
