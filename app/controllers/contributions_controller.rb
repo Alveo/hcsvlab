@@ -63,10 +63,11 @@ class ContributionsController < ApplicationController
       # check duplicated
       contrib = Contribution.find_by_name(contribution_name)
       if !contrib.nil?
-      #   contrib with same name already exists
-        msg = "contribution [#{contribution_name}] already exists."
-        logger.error "create: #{msg}"
-        raise Exception.new(msg)
+        #   contrib with same name already exists
+        msg = "Contribution name '#{contribution_name}' already been taken."
+        logger.warn "create: #{msg}"
+        conflict_error(Exception.new(msg))
+        return
       end
 
       attr = {
@@ -110,12 +111,10 @@ class ContributionsController < ApplicationController
     @contribution = Contribution.find_by_id(params[:id])
 
     if @contribution.nil?
-      respond_to do |format|
-        format.html {
-          flash[:error] = "Contribution does not exist with the given id: #{params[:id]}"
-          redirect_to contrib_index_path}
-        format.json {render :json => {:error => "not-found"}.to_json, :status => 404}
-      end
+      msg = "Contribution does not exist with the given id: #{params[:id]}"
+      logger.warn "show: #{msg}"
+      resource_not_found(Exception.new(msg), contrib_index_url)
+      return
     else
       # load metadata
       metadata = ContributionsHelper.load_contribution_metadata(@contribution.name)
@@ -168,16 +167,9 @@ class ContributionsController < ApplicationController
     contrib = Contribution.find_by_id(params[:id])
 
     if contrib.nil?
-      respond_to do |format|
-        format.html {
-          flash[:error] = "Contribution does not exist with the given id: #{params[:id]}"
-          redirect_to contrib_index_path
-        }
-        format.json {
-          render :json => {:error => "not-found"}.to_json, :status => 404
-        }
-      end
-
+      msg = "Contribution does not exist with the given id: #{params[:id]}"
+      logger.warn "import: #{msg}"
+      resource_not_found(Exception.new(msg), contrib_index_url)
       return
     end
 
@@ -212,7 +204,7 @@ class ContributionsController < ApplicationController
         }
         format.json {
           if message.start_with?("OK")
-          #   success
+            #   success
             redirect_to contrib_show_path(id: contrib.id, format: :json)
           else
             render :json => {:error => "#{message}"}.to_json, :status => 422
@@ -232,22 +224,31 @@ class ContributionsController < ApplicationController
     contrib = Contribution.find_by_id(params[:id])
 
     if contrib.nil?
-      respond_to do |format|
-        format.html {
-          flash[:error] = "Contribution does not exist with the given id: #{params[:id]}"
-          redirect_to contrib_index_path}
-        format.json {render :json => {:error => "not-found"}.to_json, :status => 404}
-      end
+      msg = "Contribution does not exist with the given id: #{params[:id]}"
+      logger.warn "update: #{msg}"
+      resource_not_found(Exception.new(msg), contrib_index_url)
+      return
     end
 
-    # only update abstract and description
+    # only update name, abstract and description
+    contribution_name = params[:contribution_name]
     contribution_text = params[:contribution_text]
     contribution_abstract = params[:contribution_abstract]
 
     begin
+      # check duplicated name
+      if (contribution_name != contrib.name) && (!Contribution.find_by_name(contribution_name).nil?)
+        # conflict with existing name
+        msg = "Contribution name '#{contribution_name}' already been taken."
+        logger.warn "update: #{msg}"
+        conflict_error(Exception.new(msg), contrib_edit_url)
+        return
+      end
+
       attr = {
         # basic part
-        :name => contrib.name,
+        :id => contrib.id,
+        :name => contribution_name,
         :description => contribution_text,
         :abstract => contribution_abstract
       }
@@ -256,22 +257,21 @@ class ContributionsController < ApplicationController
 
       respond_to do |format|
         format.html {
-          redirect_to contrib_show_path(id: contrib_id), notice: msg
+          redirect_to contrib_show_url(id: contrib_id), notice: msg
         }
         format.json {
-          redirect_to contrib_show_path(id: contrib_id, format: :json)
+          redirect_to contrib_show_url(id: contrib_id, format: :json)
         }
       end
 
-
-    rescue ResponseError => e
+    rescue Exception => e
       respond_to do |format|
         format.html {
           flash[:error] = e.message
-          redirect_to contrib_show_path(id: contrib_id)
+          redirect_to contrib_show_url(id: contrib.id)
         }
         format.json {
-          render :json => {:error => "#{e.message}"}.to_json, :status => 422
+          render :json => {:error => "#{e.message}"}.to_json, :status => 500
         }
       end
 
@@ -285,25 +285,17 @@ class ContributionsController < ApplicationController
 
     if contrib.nil?
       msg = "Contribution does not exist with the given id: #{params[:id]}"
-      logger.warn "delete: #{msg}"
-
-      respond_to do |format|
-        format.html {
-          flash[:error] = msg
-          redirect_to contrib_index_path}
-        format.json {
-          render :json => {:error => msg}.to_json, :status => 404
-        }
-      end
-
+      logger.warn "destroy: #{msg}"
+      resource_not_found(Exception.new(msg), contrib_index_url)
       return
     end
 
     if current_user.is_superuser? || ContributionsHelper.is_owner?(current_user, contrib)
       name = contrib.name
 
-      if delete_contribution(contrib)
-        msg = "Contribution [#{name}] has been removed successfully."
+      rlt_h = ContributionsHelper.delete_contribution(contrib)
+      if rlt_h[:message].nil?
+        msg = "Contribution [#{name}] has been removed successfully. #{rlt_h[:document_count]} document(s) removed."
         logger.info "delete: #{msg}"
 
         respond_to do |format|
@@ -313,6 +305,19 @@ class ContributionsController < ApplicationController
           }
           format.json {
             render :json => {:success => "#{msg}"}, :status => 200
+          }
+        end
+      else
+        msg = "Contribution [#{name}] remove failed: #{rlt_h[:message]}"
+        logger.info "delete: #{msg}"
+
+        respond_to do |format|
+          format.html {
+            flash[:notice] = msg
+            redirect_to :contrib_index
+          }
+          format.json {
+            render :json => {:error => "#{msg}"}, :status => 200
           }
         end
       end
@@ -344,16 +349,7 @@ class ContributionsController < ApplicationController
     if contrib.nil?
       msg = "Contribution does not exist with the given id: #{params[:id]}"
       logger.warn "export: #{msg}"
-
-      respond_to do |format|
-        format.html {
-          flash[:error] = msg
-          redirect_to contrib_show_path}
-        format.json {
-          render :json => {:error => msg}.to_json, :status => 404
-        }
-      end
-
+      resource_not_found(Exception.new(msg), contrib_index_url)
       return
     end
 
@@ -412,7 +408,12 @@ class ContributionsController < ApplicationController
     msg = ""
     proceed_sesame = false
 
-    contrib = Contribution.find_by_name(attr[:name])
+    if !attr[:id].nil?
+      #   contribution contains id => update
+      contrib = Contribution.find_by_id(attr[:id])
+    else
+      contrib = Contribution.find_by_name(attr[:name])
+    end
 
     contrib_abstract = attr[:abstract]
 
@@ -438,7 +439,7 @@ class ContributionsController < ApplicationController
       # PREFIX dcterms: <http://purl.org/dc/terms/>
       #
       # INSERT DATA {
-      #   <http://alveo.local:3000/contrib/9> a alveo:Contribution;
+      #   <http://localhost:3000/contrib/9> a alveo:Contribution;
       #   dcterms:identifier "9";
       #   dcterms:title "19Oct.1";
       #   dcterms:creator "Data Owner";
@@ -465,7 +466,10 @@ class ContributionsController < ApplicationController
 
     else
       # contribution exists, just update
-      # only description needs to be updated
+      # only name, description in DB need to be updated
+      if !attr[:name].nil?
+        contrib.name = attr[:name]
+      end
       contrib.description = attr[:description]
       contrib.save!
 
@@ -481,7 +485,7 @@ class ContributionsController < ApplicationController
       #
       # DELETE { ?contrib ?property ?value.}
       # INSERT {
-      #   <http://alveo.local:3000/contrib/9> a alveo:Contribution;
+      #   <http://localhost:3000/contrib/9> a alveo:Contribution;
       #   dcterms:identifier "9";
       #   dcterms:title "19Oct.1";
       #   dcterms:creator "Data Owner";
@@ -490,7 +494,7 @@ class ContributionsController < ApplicationController
       # }
       # WHERE {
       #   ?contrib ?property ?value.
-      #   FILTER(?contrib = <http://alveo.local:3000/contrib/9>)
+      #   FILTER(?contrib = <http://localhost:3000/contrib/9>)
       # }
 
       query = %(
@@ -545,54 +549,6 @@ class ContributionsController < ApplicationController
 
     return msg, contrib.id
 
-  end
-
-  # Delete contribution.
-  #
-  # - delete DB record
-  # - delete Sesame metadata
-  # - call API to remove document
-  #
-  def delete_contribution(contribution)
-    logger.debug "delete_contribution: start - contrib[#{contribution}]"
-
-    rlt = false
-
-    begin
-      #   delete sesame metadata
-      # sesame repo
-      repo = MetadataHelper::get_repo_by_collection(contribution.collection.name)
-
-      # retrieve contrib uri to compose subject
-      #
-      # e.g.,
-      #
-      # DELETE {?s ?p ?o.}
-      # WHERE {
-      #   ?s ?p ?o.
-      #   FILTER(?s = <http://alveo.local:3000/contrib/9>)
-      # }
-
-      uri = contrib_show_url(contribution.id)
-      query = %(
-      DELETE {?s ?p ?o.}
-      WHERE {
-        ?s ?p ?o.
-        FILTER(?s = <#{uri}>)
-      }
-      )
-
-      logger.debug "delete_contribution: sparql query[#{query}]"
-
-      repo.sparql_query(query)
-
-      #   DB
-      contribution.destroy
-
-      rlt = true
-    end
-
-    rlt
   end
 
 end

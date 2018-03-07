@@ -445,7 +445,7 @@ module MetadataHelper
   # Default metadata value:
   #   dcterms:title (Title, default=name)
   #   dcterms:language (Language, default='English')
-  #   dcterms:created (Creation Date, default=current date)
+  #   dcterms:created (Created Date, default=current date)
   #   dcterms:creator (Creator, default=logged in user)
   #   dcterms:licence (Licence, default='Creative Commons v3.0 BY')
   #

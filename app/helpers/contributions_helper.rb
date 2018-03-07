@@ -627,6 +627,23 @@ module ContributionsHelper
       contribution.destroy
 
       rlt[:document_count] = result.count
+
+      #   delete contribution in sesame
+      repo = MetadataHelper.get_repo_by_collection(collection.name)
+
+      uri = Rails.application.routes.url_helpers.contrib_show_url(contribution.id)
+      query = %(
+        DELETE {?s ?p ?o.}
+        WHERE {
+          ?s ?p ?o.
+          FILTER(?s = <#{uri}>)
+        }
+      )
+
+      logger.debug "delete_contribution: sparql query[#{query}]"
+
+      repo.sparql_query(query)
+
     rescue Exception => e
       logger.error "delete_contribution: #{e.inspect}"
       rlt[:message] = e.message

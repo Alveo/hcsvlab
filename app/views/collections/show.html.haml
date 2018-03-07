@@ -64,16 +64,18 @@
                 #{key}:
               #{value}
 
+      .well.sidebar-nav
+        %ul.nav.nav-list.text-left
+          %li.nav-header Items
+          Contains #{@collection.items.size} item(s)
+          - if @collection.items.size > 0
+            = link_to "Browse", catalog_index_path("f[collection_name_facet][]" => "#{@collection.name}")
+
       = render partial: 'display_attachment_sidebar', locals: {attachment_url: @attachment_url}
 
     .span1
     .span8
       .row-fluid
         = @collection.html_text.html_safe
-
-      .row-fluid
-        Contains #{@collection.items.size} item(s)
-        - if @collection.items.size > 0
-          = link_to "Browse", catalog_index_path("f[collection_name_facet][]" => "#{@collection.name}")
 
 = render 'shared/nectar_attribution'

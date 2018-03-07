@@ -5,36 +5,37 @@
       = text_field_tag :collection_name, @collection_name, placeholder: 'collection name', required: true
     .span4
 
+
 .row-fluid
   .span4
-    = label_tag :collection_title, 'Collection Title:'
+    - if current_user.is_superuser?
+      = label_tag :collection_alveo_owner, "Owner (Alveo user):"
+      = select_tag :collection_alveo_owner, options_for_select(@approved_owners, @collection_alveo_owner.id.to_s), id: 'owner_select'
+    - else
+      = label_tag :collection_alveo_owner, "Owner (Alveo user):"
+      = text_field_tag :collection_alveo_owner, @collection_alveo_owner.full_name, disabled: true
+  .span4
+    = label_tag :collection_creator, 'Creator:'
+    = text_field_tag :collection_creator, @collection_creator, placeholder: 'collection creator\'s name'
+
+.row-fluid
+  .span4
+    = label_tag :collection_title, 'Title:'
     = text_field_tag :collection_title, @collection_title, placeholder: "collection title"
   .span4
     %label{:for => "olac_subject"}
-      Collection Subject:
+      Subject:
       %a{:href => "http://www.language-archives.org/REC/field.html", :target => "_blank"}
         %i.icon-question-sign
     = select_tag :olac_subject, options_for_select(@olac_subject_options, @olac_subject), id: 'olac_subject'
 
 .row-fluid
   .span4
-    = label_tag :collection_creator, 'Collection Creator:'
-    = text_field_tag :collection_creator, @collection_creator, placeholder: 'collection creator\'s name'
-  .span4
-    = label_tag :collection_language, 'Collection Language:'
+    = label_tag :collection_language, 'Language:'
     = select_tag :collection_language, options_for_select(@collection_languages, @collection_language), id: 'language_select'
-
-.row-fluid
   .span4
-    - if current_user.is_superuser?
-      = label_tag :collection_alveo_owner, "Collection Alveo Owner (full name):"
-      = select_tag :collection_alveo_owner, options_for_select(@approved_owners, @collection_alveo_owner.id.to_s), id: 'owner_select'
-    - else
-      = label_tag :collection_alveo_owner, "Collection Alveo Owner:"
-      = text_field_tag :collection_alveo_owner, @collection_alveo_owner.full_name, disabled: true
-  .span4
-    %label_tag{:for => "collection_legal_owner"}
-      Collection Legal Owner:
+    %label{:for => "collection_legal_owner"}
+      Legal Owner:
       %a{:href => "http://id.loc.gov/vocabulary/relators/own.html", :target => "_blank"}
         %i.icon-question-sign
     = text_field_tag :collection_legal_owner, @collection_legal_owner, placeholder: 'people or organisation name'
@@ -44,7 +45,7 @@
     = label_tag :licence_id, 'Licence:'
     = select_tag :licence_id, options_for_select(@collection_licences.map {|l| [l.name, l.id]}, @collection.nil? ? LicenceHelper.licence(nil).id : @collection.licence_id), include_blank: false
   .span4
-    = label_tag :collection_creation_date, 'Collection Creation Date:'
+    = label_tag :collection_creation_date, 'Created Date:'
     = text_field_tag :collection_creation_date, @collection_creation_date, placeholder: 'dd/mm/yyyy'
 
 .row-fluid

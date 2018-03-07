@@ -1,7 +1,7 @@
 - if @contribution.nil?
   .row-fluid
     .span4
-      = label_tag :contribution_name, 'Name/Title:'
+      = label_tag :contribution_name, 'Name:'
       = text_field_tag :contribution_name, @contribution_name, placeholder: 'contribution name/title', required: true
     .span4
       %label{:for => "Related Collection:"}
@@ -12,8 +12,8 @@
 - else
   .row-fluid
     .span4
-      = label_tag :contribution_name, 'Name/Title:'
-      = text_field_tag :contribution_name, @contribution.name, disabled: true
+      = label_tag :contribution_name, 'Name:'
+      = text_field_tag :contribution_name, @contribution.name
     .span4
       =label_tag :contribution_collection, 'Related Collection:'
       = text_field_tag :contribution_collection, @contribution.collection.name, disabled: true
