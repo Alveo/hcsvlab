@@ -605,7 +605,7 @@ module ContributionsHelper
   #
   def self.delete_contribution(contribution)
     logger.debug "delete_contribution: start - contribution[#{contribution}]"
-    rlt = {message: nil, document_count: nil}
+    rlt = {message: nil, document_count: 0}
 
     collection = contribution.collection
     # contrib_dir = contribution_dir(contribution)
@@ -613,6 +613,8 @@ module ContributionsHelper
     begin
       result = ContributionMapping.where(:contribution_id => contribution.id)
       # delete all related document one-by-one
+      logger.debug "delete_contribution: result count[#{result.count}]"
+      rlt[:document_count] = result.count
       result.each do |row|
         item = Item.find_by_id(row.item_id)
         document = Document.find_by_id(row.document_id)
@@ -625,8 +627,6 @@ module ContributionsHelper
 
       # delete contribution
       contribution.destroy
-
-      rlt[:document_count] = result.count
 
       #   delete contribution in sesame
       repo = MetadataHelper.get_repo_by_collection(collection.name)

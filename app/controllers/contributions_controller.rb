@@ -296,7 +296,7 @@ class ContributionsController < ApplicationController
       rlt_h = ContributionsHelper.delete_contribution(contrib)
       if rlt_h[:message].nil?
         msg = "Contribution [#{name}] has been removed successfully. #{rlt_h[:document_count]} document(s) removed."
-        logger.info "delete: #{msg}"
+        logger.info "destroy: #{msg}"
 
         respond_to do |format|
           format.html {
@@ -309,7 +309,7 @@ class ContributionsController < ApplicationController
         end
       else
         msg = "Contribution [#{name}] remove failed: #{rlt_h[:message]}"
-        logger.info "delete: #{msg}"
+        logger.info "destroy: #{msg}"
 
         respond_to do |format|
           format.html {
@@ -322,8 +322,8 @@ class ContributionsController < ApplicationController
         end
       end
     else
-      msg = "Ony owner or admin can delete contrib."
-      logger.info "delete: #{msg}"
+      msg = "Only owner or admin can delete contribution."
+      logger.info "destroy: #{msg}"
 
       respond_to do |format|
         format.html {
