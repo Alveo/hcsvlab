@@ -33,14 +33,16 @@ module CollectionsHelper
   # item - item instance
   # document_metadata - hash
   # document_file - document file path
+  # overwrite - to overwrite existing document (true/false), default is false
   #
-  def self.add_document_core(collection, item, document_metadata, document_file)
-    doc_id, msg = create_document(item, document_metadata)
+  def self.add_document_core(collection, item, document_metadata, document_file, overwrite=false)
+    doc_id, msg = create_document(item, document_metadata, overwrite)
     add_and_index_document(item, document_metadata)
     "Added the document #{File.basename(document_file)} to item #{item.get_name} in collection #{collection.name}"
 
     # check contribution mapping
-    if !document_metadata["alveo:Contribution"].nil? && !doc_id.nil?
+    # if overwrite is true, don't need to modify existing mapping
+    if !document_metadata["alveo:Contribution"].nil? && !doc_id.nil? && !overwrite
       logger.debug "add_document_core: create contribution_mapping between contribution[#{document_metadata["alveo:Contribution"]}] and document[#{doc_id}]"
       # create association between contribution and document
       contrib_mapping = ContributionMapping.new
@@ -52,13 +54,15 @@ module CollectionsHelper
     end
   end
 
-  # Creates a document in the database from Json-ld document metadata
+  # Create a document in the database from Json-ld document metadata.
+  #
+  # If document exists and overwrite is true, then overwrite existing document.
   #
   # Return:
   #
   # - document id (nil if failed)
   # - message (if created successfully nil, otherwise error message)
-  def self.create_document(item, document_json_ld)
+  def self.create_document(item, document_json_ld, overwrite=false)
 
     expanded_metadata = JSON::LD::API.expand(document_json_ld).first
 
@@ -73,9 +77,8 @@ module CollectionsHelper
     doc_type = ContributionsHelper.extract_doc_type(file_name) unless doc_type.nil?
     msg = nil
 
-    # TODO: replaced by Collections.find_associated_document_by_file_name
     document = item.documents.find_or_initialize_by_file_name(file_name)
-    if document.new_record?
+    if document.new_record? || overwrite
       begin
         document.file_path = file_path
         document.doc_type = doc_type
@@ -83,14 +86,15 @@ module CollectionsHelper
         document.item = item
         document.item_id = item.id
         document.save
-        logger.info "create_document: #{doc_type} Document = #{document.id.to_s}" unless Rails.env.test?
+
+        logger.info "create_document: #{doc_type} Document = #{document.id.to_s} overwrite[#{overwrite}]"
       rescue Exception => e
-        logger.error("create_document: Error creating document: #{e.message}")
+        logger.error "create_document: Error creating document: #{e.message}, metadata[#{expanded_metadata}], overwrite[#{overwrite}]"
         document.id = nil
         msg = e.message
       end
     else
-      raise ResponseError.new(412), "A file named #{file_name} is already in use by another document of item #{item.get_name}"
+      raise ResponseError.new(409), "A file named #{file_name} is already in use by another document of item '#{item.get_name}'"
     end
 
     return document.id, msg

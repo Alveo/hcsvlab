@@ -60,9 +60,9 @@ ActiveRecord::Schema.define(:version => 20171207032545) do
     t.integer  "owner_id"
     t.integer  "collection_list_id"
     t.integer  "licence_id"
-    t.datetime "created_at",                              :null => false
-    t.datetime "updated_at",                              :null => false
-    t.string   "status",             :default => "DRAFT"
+    t.datetime "created_at",                                 :null => false
+    t.datetime "updated_at",                                 :null => false
+    t.string   "status",             :default => "RELEASED"
   end
 
   create_table "contribution_mappings", :force => true do |t|

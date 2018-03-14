@@ -528,7 +528,7 @@ class ContributionsController < ApplicationController
 
         if vld_rlt[:error].nil?
           # no news is good news, validation passed
-          add_rlt = ContributionsHelper.add_document_to_contribution(contrib.id, vld_rlt[:item_handle], attr[:file])
+          add_rlt = ContributionsHelper.add_document_to_contribution(contrib.id, vld_rlt[:item_handle], attr[:file], vld_rlt[:mode])
           msg = "Contribution '#{contrib.name}' (#{uri}) updated"
         else
           msg = "Contribution '#{contrib.name}' (#{uri}) update failed: #{vld_rlt[:error]}"

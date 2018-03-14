@@ -139,6 +139,7 @@ module ContributionsHelper
   #   :document_file_name => [document.file_name] (array of string, nil if not found),
   #   :dest_file => destination file name (basename), nil if validate failed
   #   :message => nil (no news is good news, otherwise error message)
+  #   :mode => rename/overwrite
   # }
   #
   def self.validate_contribution_file(contribution_id, file)
@@ -151,7 +152,8 @@ module ContributionsHelper
       :item_handle => nil,
       :document_file_name => [],
       :dest_file => file,
-      :message => nil
+      :message => nil,
+      :mode => 'rename'
     }
 
     # document file: abc.txt
@@ -201,9 +203,11 @@ module ContributionsHelper
 
         if name_result[:mode] == "rename"
           rlt[:message] += "New file would be renamed as '#{name_result[:file_name]}'."
+          rlt[:mode] = 'rename'
         else
           if name_result[:mode] == "overwrite"
             rlt[:message] += "Existing file would be overwritten as '#{name_result[:file_name]}'."
+            rlt[:mode] = 'overwrite'
           end
         end
       end
@@ -275,7 +279,9 @@ module ContributionsHelper
             FileUtils.mv(extracted_filepath, doc_file)
           end
 
-          add_document_to_contribution(contrib_id, item_handle, doc_file)
+          overwrite = (doc[:mode] == 'overwrite') ? true : false
+
+          add_document_to_contribution(contrib_id, item_handle, doc_file, overwrite)
             # logger.info "import: contribution_id[#{contrib_id}], item_handle[#{item_handle}], doc_file[#{doc_file}]"
 
         rescue Exception => e
@@ -354,8 +360,8 @@ module ContributionsHelper
   # - file already validated
   #
   #
-  def self.add_document_to_contribution(contribution_id, item_handle, doc_file)
-    logger.debug "add_document_to_contribution: start - contribution_id[#{contribution_id}], item_handle[#{item_handle}], doc_file[#{doc_file}]"
+  def self.add_document_to_contribution(contribution_id, item_handle, doc_file, overwrite=false)
+    logger.debug "add_document_to_contribution: start - contribution_id[#{contribution_id}], item_handle[#{item_handle}], doc_file[#{doc_file}], overwrite[#{overwrite}]"
 
     # compose file attr
     contribution = Contribution.find_by_id(contribution_id)
@@ -385,7 +391,7 @@ module ContributionsHelper
       file_path,
       contrib_metadata)
 
-    CollectionsHelper.add_document_core(contribution.collection, Item.find_by_handle(item_handle), doc_json, file_path)
+    CollectionsHelper.add_document_core(contribution.collection, Item.find_by_handle(item_handle), doc_json, file_path, overwrite)
 
   end
 
@@ -459,6 +465,7 @@ module ContributionsHelper
   #     :document => associated document name,
   #     :dest_file => destination file base name, nil if validate failed
   #     :message => error message (no news is good news, nil is good)
+  #     :mode => 'rename'/'overwrite'
   #   }
   # ]
   #
@@ -489,7 +496,8 @@ module ContributionsHelper
         :item => (vld_rlt[:item_handle].split(":").last unless vld_rlt[:item_handle].nil?),
         :document => (vld_rlt[:document_file_name] unless vld_rlt[:document_file_name].nil?),
         :dest_file => vld_rlt[:dest_file],
-        :message => vld_rlt[:message]
+        :message => vld_rlt[:message],
+        :mode => vld_rlt[:mode]
       }
 
     end
@@ -541,7 +549,7 @@ module ContributionsHelper
           break
         else
           #   collection document or different contribution, rename mode
-          #   abc.txt => abc-cx.txt (x is contribution id)
+          #   abc.txt => abc-cx.txt ('c' for contribution, 'x' is contribution id)
           dest_file = File.basename(src_file, File.extname(src_file)) + "-c#{contrib_id}" + File.extname(src_file)
 
           # further check dest_file available
