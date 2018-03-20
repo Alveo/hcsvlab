@@ -79,19 +79,27 @@ class UserRegistersController < Devise::RegistrationsController
   #
   def download_details
 
+    file = Tempfile.new("newfile_#{Time.now.getutc}")
+    hash = {}
+
     token_user = current_resource_owner
 
-    file = Tempfile.new("newfile")
-    hash = {}
-    hash[:base_url] = root_url
-    hash[:first_name] = token_user.first_name
-    hash[:last_name] = token_user.last_name
-    hash[:email] = token_user.email
-    hash[:status] = token_user.status
-    hash[:apiKey] = token_user.authentication_token
-    hash[:cacheDir] = "wrassp_cache"
-    # KL - retrieve role name
-    hash[:role] = token_user.role.name
+    if !token_user.nil?
+      hash[:user_id] = "#{token_user.id}"
+      hash[:base_url] = root_url
+      hash[:first_name] = token_user.first_name
+      hash[:last_name] = token_user.last_name
+      hash[:email] = token_user.email
+      hash[:status] = token_user.status
+      hash[:apiKey] = token_user.authentication_token
+      hash[:cacheDir] = "wrassp_cache"
+      # KL - retrieve role name
+      hash[:role] = token_user.role.name
+    else
+      msg = "Please login to proceed."
+      authorization_error(Exception.new(msg))
+      return
+    end
 
     file.puts(hash.to_json)
     file.close
