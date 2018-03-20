@@ -6,7 +6,7 @@ class RdfNamespace
   #
   # Get all namespaces for a given repository
   #
-  def self.get_namespaces(repo)
+  def self.get_repo_namespaces(repo)
     uri = URI("#{SESAME_CONFIG["url"]}/repositories/#{repo}/namespaces")
 
     # Send the request to the sparql endpoint.
@@ -21,18 +21,31 @@ class RdfNamespace
       Rails.logger.error(res.body)
       raise Exception.new
     else
-      namespaces = Hash[JSON.parse(res.body)["results"]["bindings"].collect { |entry| [entry["prefix"]["value"], entry["namespace"]["value"]]}]
+      namespaces = Hash[JSON.parse(res.body)["results"]["bindings"].collect {|entry| [entry["prefix"]["value"], entry["namespace"]["value"]]}]
     end
     # Add in RDF namespace manually as it may not always be in triplestore namespaces
     namespaces["rdf"] = RDF_NAMESPACE
     return namespaces
   end
 
+  def self.get_namespaces(repo)
+    get_default_namespaces
+  end
+
+  #
+  # Get default namespaces from JsonLdHelper::default_context
+  #
+  def self.get_default_namespaces()
+    rlt = {"rdf" =>  RDF_NAMESPACE}
+
+    return rlt.merge!(Hash[JsonLdHelper.default_context.map{|k, v| [k, v["@id"]]}])
+  end
+
   #
   # Get the shortened URI (prefix:value) for a whole URI if found in the given namespaces
   #
   def self.get_shortened_uri(uri, namespaces)
-    namespaces.each do |k,v|
+    namespaces.each do |k, v|
       if uri.include? v and !uri.gsub(v, "").include? "/" and !uri.gsub(v, "").include? "#"
         return k + ":" + uri.gsub(v, "")
       end

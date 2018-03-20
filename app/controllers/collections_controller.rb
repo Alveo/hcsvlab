@@ -368,7 +368,8 @@ class CollectionsController < ApplicationController
       item = validate_item_exists(collection, params[:itemId])
       doc_metadata = parse_str_to_json(params[:metadata], 'JSON document metadata is ill-formatted')
 
-      logger.debug "add_document_to_item: params[:metadata]=#{params[:metadata]}, doc_metadata[#{doc_metadata}]"
+      # performance issue: if upload large file, this debug log matters
+      # logger.debug "add_document_to_item: params[:metadata]=#{params[:metadata]}, doc_metadata[#{doc_metadata}]"
 
       doc_content = params[:document_content]
       uploaded_file = params[:file]

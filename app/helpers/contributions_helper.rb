@@ -159,6 +159,12 @@ module ContributionsHelper
     # document file: abc.txt
     # pattern is "abc", all files start with "abc" would be retrieved
     pattern = File.basename(file, ".*")
+    item_handle = extract_handle(contrib, file)
+    item_handle_criteria = ''
+    if !item_handle.nil?
+      item_handle_criteria = "AND i.handle = '#{item_handle}'"
+    end
+
 
     sql = %(
     SELECT
@@ -169,6 +175,7 @@ module ContributionsHelper
       ON d.id = cm.document_id
     WHERE
       i.collection_id = #{contrib.collection_id}
+      #{item_handle_criteria}
       AND d.item_id = i.id
       AND d.file_name like '#{pattern}%'
     )
@@ -214,6 +221,27 @@ module ContributionsHelper
     end
 
     logger.debug "validate_contribution_file: end - rlt[#{rlt}]"
+
+    return rlt
+  end
+
+  #
+  # Contribution document file name convention:
+  #
+  # <item handle>-<document name>.<ext>
+  #
+  # return nil if file name violate convention
+  #
+  def self.extract_handle(contrib, file_name)
+    rlt = nil
+
+    begin
+      collection = Collection.find_by_id(contrib.collection_id)
+      sep = '-'
+      rlt =  "#{collection.name}:#{file_name.split(sep)[0]}"
+    rescue Exception => e
+      logger.warn "extract_handle: #{e.message}"
+    end
 
     return rlt
   end
