@@ -14,6 +14,7 @@ module JsonLdHelper
     predefined_properties['end'] = {'@id' => "http://purl.org/dada/schema/0.2#end"}
     predefined_properties['label'] = {'@id' => "http://purl.org/dada/schema/0.2#label"}
     predefined_properties["#{PROJECT_PREFIX_NAME}"] = {'@id' => "#{PROJECT_SCHEMA_LOCATION}"}
+    predefined_properties["#{PROJECT_VOCABULARY_PREFIX_NAME}"] = {'@id' => "#{PROJECT_VOCABULARY_LOCATION}"}
 
     predefined_properties
   end
