@@ -10,6 +10,7 @@ class ApplicationController < ActionController::Base
   before_filter :default_format_json
   before_filter :api_check
 
+
   include ErrorResponseActions
   
   rescue_from CanCan::AccessDenied, :with => :authorization_error
@@ -51,6 +52,11 @@ class ApplicationController < ActionController::Base
     end
     file.close
     send_file file.path, :filename => "metrics.csv", :disposition => "attachment"
+  end
+
+  def ensure_json_request
+    return if request.format == :json
+    render :nothing => true, :status => 406
   end
 
   private

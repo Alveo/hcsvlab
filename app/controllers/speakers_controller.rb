@@ -3,6 +3,7 @@ require "#{Rails.root}/lib/tasks/fedora_helper.rb"
 class SpeakersController < ApplicationController
 
   before_filter :authenticate_user!
+  before_filter :ensure_json_request
 
   # GET returns a list of speaker identifiers (URIs) associated with this collection
   def index
