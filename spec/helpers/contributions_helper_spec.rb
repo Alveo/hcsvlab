@@ -13,13 +13,10 @@ require 'spec_helper'
 RSpec.describe ContributionsHelper, :type => :helper do
   # pending "add some examples to (or delete) #{__FILE__}"
 
-  let!(:owner) {FactoryGirl.create(:user_data_owner)}
-  let!(:collection) {FactoryGirl.create(:collection, owner: owner)}
-  let!(:item) {FactoryGirl.create(:item, collection: collection)}
-  let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "Rodney.wav")}
-  let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "Isaac.wav")}
-  let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "Phoebe.wav")}
-  let!(:contribution) {FactoryGirl.create(:contribution, collection: collection)}
+  let(:owner) {FactoryGirl.create(:user_data_owner)}
+  let(:collection) {FactoryGirl.create(:collection, owner: owner, name: "family_1")}
+  let(:item) {FactoryGirl.create(:item, collection: collection, handle: "#{collection.name}:kid_1")}
+  let(:contribution) {FactoryGirl.create(:contribution, collection: collection)}
 
   after do
     FileUtils.rm_r(APP_CONFIG["contrib_dir"])
@@ -54,6 +51,9 @@ RSpec.describe ContributionsHelper, :type => :helper do
   end
 
   describe "test preview_import" do
+    let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Rodney.wav")}
+    let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Isaac.wav")}
+    let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Phoebe.wav")}
 
     context "when zip contains all good files" do
       it "returns all success" do
@@ -66,7 +66,7 @@ RSpec.describe ContributionsHelper, :type => :helper do
         rlt = ContributionsHelper.preview_import(contribution)
 
         rlt.each do |row|
-          expect(row[:message].nil?).to be_true
+          expect(row[:message]).to be_nil
         end
       end
     end
@@ -84,33 +84,12 @@ RSpec.describe ContributionsHelper, :type => :helper do
         error_not_found = false
 
         rlt.each do |row|
-          if !row[:message].nil? && row[:message].include?("can't find existing document associated with")
+          if !row[:message].nil? && row[:message].include?("no item/document found to associate with")
             error_not_found = true
           end
         end
 
         expect(error_not_found).to be_true
-      end
-
-      it "returns error result - duplicated file" do
-        #   prepare zip
-        src = "#{Rails.root}/test/samples/contributions/contrib_doc.error.zip"
-        dest = ContributionsHelper.contribution_import_zip_file(contribution)
-        FileUtils.mkdir_p(File.dirname(dest))
-        FileUtils.cp(src, dest)
-
-        rlt = ContributionsHelper.preview_import(contribution)
-
-        error_duplicated_doc = false
-
-        rlt.each do |row|
-          if !row[:message].nil? && row[:message].include?("duplicated document found")
-            error_duplicated_doc = true
-          end
-        end
-
-        expect(error_duplicated_doc).to be_true
-
       end
     end
 
@@ -118,7 +97,7 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
   describe "test unzip" do
 
-    let(:zip_file)  {ContributionsHelper.contribution_import_zip_file(contribution)}
+    let(:zip_file) {ContributionsHelper.contribution_import_zip_file(contribution)}
     let(:unzip_dir) {File.join(File.dirname(zip_file), File.basename(zip_file, ".zip"))}
 
     after do
@@ -138,27 +117,22 @@ RSpec.describe ContributionsHelper, :type => :helper do
         if !rlt.is_a? String
 
           rlt.each do |f|
-            puts "checking [#{f[:dest_name]}]..."
             expect(File.exists?(f[:dest_name])).to be_true
           end
 
         end
       end
-
-      # context "with invalid zip file" do
-      #   it "returns error message" do
-      #
-      #   end
-      # end
     end
   end
 
   describe "test import" do
+    let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Rodney.wav")}
+    let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Isaac.wav")}
+    let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Phoebe.wav")}
+
     context "when zip is not present" do
       it "returns zip file not found" do
         rlt = ContributionsHelper.import(contribution)
-
-        puts rlt
 
         expect(rlt.end_with?("not found")).to be_true
       end
@@ -172,7 +146,6 @@ RSpec.describe ContributionsHelper, :type => :helper do
         FileUtils.cp(src, dest)
 
         rlt = ContributionsHelper.import(contribution)
-        puts rlt.inspect
         expect(rlt.end_with?("document(s) imported.")).to be_true
       end
     end
@@ -185,7 +158,6 @@ RSpec.describe ContributionsHelper, :type => :helper do
         FileUtils.cp(src, dest)
 
         rlt = ContributionsHelper.import(contribution)
-        puts rlt.inspect
         expect(rlt.start_with?("import failed")).to be_true
       end
     end
@@ -220,83 +192,207 @@ RSpec.describe ContributionsHelper, :type => :helper do
     end
   end
 
-  describe "test next_available_name" do
-    let(:contrib_id) {1}
-    let(:src_file) {"test.txt"}
-    let(:dest_file) {"test-c#{contrib_id}.txt"}
-    let(:dest_file_2) {"test-c#{contrib_id}-c#{contrib_id}.txt"}
 
-    context "rename: no duplicated file" do
-      it "returns normal result" do
-        existing_files = [
-          {:name => 'not_me.txt', :contrib_id => 12},
-          {:name => 'not_me_2.txt', :contrib_id => 123},
-          {:name => 'not_me_3.txt', :contrib_id => nil}
-        ]
+  describe "test validate_contribution_file" do
+    let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "Rodney.wav")}
+    let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "Isaac.wav")}
+    let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "Phoebe.wav")}
+    let!(:doc_4) {FactoryGirl.create(:document, item: item, file_name: "Rodney_123_abc.wav")}
 
-        rlt = ContributionsHelper.next_available_name(contrib_id, src_file, existing_files)
-        expect(rlt[:mode]).to eq("rename")
-        expect(rlt[:file_name]).to eq(src_file)
+    let!(:item_bak) {FactoryGirl.create(:item, collection: collection, handle: "#{collection.name}:kid_2")}
+    let!(:doc_bak_1) {FactoryGirl.create(:document, item: item_bak, file_name: "#{item.get_name}.wav")}
+
+    context "with type:delimiter" do
+      it "delimiter '-' and field 1 and item name can be extracted, then file is valid" do
+        file = "#{item.get_name}-test.txt"
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file)
+
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:dest_file]).to eq(file)
+      end
+
+      it "delimiter '-' and field 1 but item name cannot be extracted, then file is invalid" do
+        file = "Rodney.ps"
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+
+      it "delimiter '-' and field 2 and item name can be extracted, then file is valid" do
+        file = "test-#{item.get_name}.txt"
+        sep = {:type => 'delimiter', :delimiter => '-', :field => 2}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:dest_file]).to eq(file)
+      end
+
+      it "delimiter '-' and field 999 but item name cannot be extracted, then file is invalid" do
+        file = "test-#{item.get_name}.txt"
+        sep = {:type => 'delimiter', :delimiter => '-', :field => 999}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+
+      it "delimiter '-' and field -1 but item name cannot be extracted, then file is invalid" do
+        file = "test-#{item.get_name}.txt"
+        sep = {:type => 'delimiter', :delimiter => '-', :field => -1}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+
+      it "delimiter '-' and field 'a' but item name cannot be extracted, then file is invalid" do
+        file = "test-#{item.get_name}.txt"
+        sep = {:type => 'delimiter', :delimiter => '-', :field => 'a'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+
+      it "delimiter '-' and field 2 but item name cannot be extracted, then file is invalid" do
+        file = "test-123-#{item.get_name}.txt"
+        sep = {:type => 'delimiter', :delimiter => '-', :field => 2}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+
+      it "delimiter '.' and field 1 and item name can be extracted, then file is valid" do
+        file = "#{item.get_name}.Rodney.txt"
+        sep = {:type => 'delimiter', :delimiter => '.', :field => 1}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:dest_file]).to eq(file)
+        expect(rlt[:document_file_name]).to eq([])
       end
     end
 
-    context "overwrite: src_file duplicated with same contribution" do
-      it "returns overwrite result" do
-        existing_files = [
-          {:name => 'not_me.txt', :contrib_id => 12},
-          {:name => src_file, :contrib_id => contrib_id},
-          {:name => 'not_me_3.txt', :contrib_id => nil}
-        ]
+    context "with type:offset" do
+      it "offset is correct and item name can be extracted, then file is valid" do
+        file = "#{item.get_name}_Rodney.txt"
+        sep = {:type => 'offset', :offset => item.get_name().length}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
 
-        rlt = ContributionsHelper.next_available_name(contrib_id, src_file, existing_files)
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(file)
+        expect(rlt[:document_file_name]).to eq([])
+      end
+
+      it "offset is wrong and item name cannot be extracted, then file is invalid" do
+        file = "#{item.get_name}_Rodney.txt"
+        sep = {:type => 'offset', :offset => item.get_name().length + 1}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+    end
+
+    context "with type:item" do
+      it "file base name is the same as item name, then file is valid" do
+        file = "#{item.get_name}.trs"
+        sep = {:type => 'item'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(file)
+      end
+
+      it "file base name is not the same as item name, then file is invalid" do
+        file = "kid_1_abc.trs"
+        sep = {:type => 'item'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+    end
+
+    context "with type:doc" do
+      it "file base name is the same as doc name, then file is valid" do
+        file = "Rodney.test"
+        sep = {:type => 'doc'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(file)
+        expect(rlt[:document_file_name]).to eq(["Rodney.wav", "Rodney_123_abc.wav"])
+      end
+
+      it "doc name is prefix of file base name, then file is valid" do
+        file = "Rodney_123.test"
+        sep = {:type => 'doc'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:message]).to be_nil
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(file)
+        expect(rlt[:document_file_name]).to eq(["Rodney_123_abc.wav"])
+      end
+
+      it "file name has no relationship with doc name, then file is invalid" do
+        file = "abc.wav"
+        sep = {:type => 'doc'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:item_handle]).to be_nil
+        expect(rlt[:message]).to eq("no item/document found to associate with '#{file}'")
+        expect(rlt[:dest_file]).to be_nil
+      end
+    end
+
+    context "same name collection-document found" do
+      it "returns new file name with rename mode" do
+        file = "#{doc_1.file_name}"
+        sep = {:type => 'doc'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expected_name = "Rodney-c#{contribution.id}.wav"
+        expect(rlt[:message]).to eq("Duplicated document found[#{doc_1.file_name}]. New file would be renamed as '#{expected_name}'.")
+        expect(rlt[:mode]).to eq("rename")
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(expected_name)
+        expect(rlt[:document_file_name]).to eq(["#{doc_1.file_name}", "#{doc_4.file_name}"])
+      end
+    end
+
+    context "same name contribution-document (same contribution) found " do
+      let!(:doc_5) {FactoryGirl.create(:document, item: item, file_name: "Rodney.txt")}
+      let!(:cm_1) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: doc_5)}
+
+      it "returns same file name with overwrite mode" do
+        file = "#{doc_5.file_name}"
+        sep = {:type => 'doc'}
+        rlt = ContributionsHelper.validate_contribution_file(contribution.id, file, sep)
+
+        expect(rlt[:message]).to eq("Duplicated document found[#{file}]. Existing file would be overwritten as '#{file}'.")
         expect(rlt[:mode]).to eq("overwrite")
-        expect(rlt[:file_name]).to eq(src_file)
-      end
-
-    end
-
-    context "rename: src_file duplicated with other contribution" do
-      it "returns rename result" do
-        existing_files = [
-          {:name => 'not_me.txt', :contrib_id => 12},
-          {:name => src_file, :contrib_id => 12},
-          {:name => 'not_me_3.txt', :contrib_id => nil}
-        ]
-
-        rlt = ContributionsHelper.next_available_name(contrib_id, src_file, existing_files)
-        expect(rlt[:mode]).to eq("rename")
-        expect(rlt[:file_name]).to eq(dest_file)
-      end
-    end
-
-    context "rename: src_file duplicated with null contribution (collection document)" do
-      it "returns rename result" do
-        existing_files = [
-          {:name => 'not_me.txt', :contrib_id => 12},
-          {:name => src_file, :contrib_id => nil},
-          {:name => 'not_me_3.txt', :contrib_id => nil}
-        ]
-
-        rlt = ContributionsHelper.next_available_name(contrib_id, src_file, existing_files)
-        expect(rlt[:mode]).to eq("rename")
-        expect(rlt[:file_name]).to eq(dest_file)
-      end
-    end
-
-    context "rename: dest_file duplicated with existing file" do
-      it "returns rename result" do
-        existing_files = [
-          {:name => 'not_me.txt', :contrib_id => 12},
-          {:name => src_file, :contrib_id => 12},
-          {:name => dest_file, :contrib_id => nil}
-        ]
-
-        rlt = ContributionsHelper.next_available_name(contrib_id, src_file, existing_files)
-        expect(rlt[:mode]).to eq("rename")
-        expect(rlt[:file_name]).to eq(dest_file_2)
+        expect(rlt[:item_handle]).to eq(item.handle)
+        expect(rlt[:dest_file]).to eq(file)
+        expect(rlt[:document_file_name]).to eq(["#{file}", "#{doc_1.file_name}", "#{doc_4.file_name}"])
       end
     end
   end
-
 
 end

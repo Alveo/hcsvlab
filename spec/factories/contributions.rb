@@ -2,7 +2,7 @@
 
 FactoryGirl.define do
   factory :contribution do
-    name {"#{collection.name}-contrib"}
+    sequence(:name) {|n| "#{collection.name}-contrib_#{n}"}
     association :collection
     owner { collection.owner }
     description {"Long long ago there was a description in [#{name}]...the end."}

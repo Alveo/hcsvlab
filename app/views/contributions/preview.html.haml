@@ -56,23 +56,109 @@
     %h3= main_title
 
   .row-fluid
-    To be associated with a data file, an annotation file must have the same filename up to the extension (e.g. “4_68_4_10.wav” and “4_68_4_10.TextGrid”). You will get an error if one of the annotation files cannot be associated with one of the data files in the collection.
+    To be associated with a data file, an annotation file must in some way to associate with existing item. (e.g. “4_68_4_10.wav” and “4_68_4_10.TextGrid”). You will get an error if finally one of the annotation files cannot be associated with one of the data files in the collection.
 
   .row-fluid
     .page-header
 
-  .row-fluid
-    %span.label.label-info Notice
-    = preview_brief
-
-  - if !can_proceed_import
-    .row-fluid
-      %span.label.label-important ATTENTION
-      - failed_doc.each do |fd|
-        %li= fd[:message]
-
 
   = form_tag({controller: 'contributions', action: 'import'}, multipart: true, method: 'post', :id => 'import_contribution_form') do
+
+    %h3= "Tell me how to associate your file to collection item"
+    .row-fluid
+      .span1
+        = radio_button_tag "sep", "delimiter", @sep[:type]=="delimiter"
+      .span4
+        = label_tag :opt_text_1, "You can specify the delimiter character to split file name and which filed you think should be the item name. By default, we use '-' to split file name, and take the 1st field as item name."
+        .form-group.form-inline
+          = label_tag :label_1, "Delimiter character:", class: "span6"
+          = text_field_tag :delimiter, @sep[:delimiter].nil? ? "" : @sep[:delimiter], maxlength: 1, size: 1, placeholder: "e.g., - or .", class: "span3"
+        .form-group.form-inline
+          = label_tag :label_1, "Field Number:", class: "span6"
+          = text_field_tag :field, @sep[:field].nil? ? "" : @sep[:field], maxlength: 1, size: 1, placeholder: "e.g, 1 or 2", class: "span3"
+      .span7
+        e.g., file name:
+        %span.badge 200-192_2_7_001-ch6-speaker16.txt
+        , delimiter
+        %span.badge -
+        to split file name, and extract
+        %span.badge 1st
+        field as item name => item name: 200
+        %p
+        e.g., file name:
+        %span.badge 12315_306_4_10_001.trs
+        , delimiter
+        %span.badge _
+        and field number
+        %span.badge 2
+        then => item name: 306
+
+    .row-fluid
+      .span1
+        = radio_button_tag "sep", "offset", @sep[:type]==("offset")
+      .span4
+        = label_tag :opt_text_3, "or, you can specify the first ? characters of the file name is the item name"
+        .form-group.form-inline
+          = label_tag :label_1, "First ? characters:", class: "span6"
+          = text_field_tag :offset, @sep[:offset].nil? ? "" : @sep[:offset], maxlength: 2, size: 2, placeholder: "e.g., 5", class: "span3"
+      .span7
+        e.g., file name:
+        %span.badge 169_107_4_10_001.trs
+        , first
+        %span.badge 3
+        characters => item name: 169
+
+    .row-fluid
+      .span1
+        = radio_button_tag "sep", "item", @sep[:type]==("item")
+      .span4
+        = label_tag :opt_text_2, "or, file base name (without file extension) is the same as item name"
+      .span7
+        e.g., file name:
+        %span.badge 4_10_001.trs
+        and collection has item named
+        %span.badge 4_10_001
+        then this file would be associated with item
+        %span.badge 4_10_001
+
+    .row-fluid
+      .span1
+        = radio_button_tag "sep", "doc", @sep[:type]==("doc")
+      .span4
+        = label_tag :opt_text_2, "or, file base name (without file extension) is the same as certain document name or document name is prefix of file base name. Finally through this document you can associate your file to a collection item accordingly."
+      .span7
+        e.g., file name:
+        %span.badge 2_192_2_7_001.out
+        and collection has document named
+        %span.badge 2_192_2_7_001.wav
+        or
+        %span.badge 2_192_2_7_001-speaker.wav
+        then finally this file would be associated with the collection item that contains this document
+
+    .row-fluid
+
+    - if !@sep.nil?
+      - if !@sep[:delimiter].nil?
+        Delimiter is
+        %span.badge.badge-important #{@sep[:delimiter]}
+      - if !@sep[:field].nil?
+        Field number is
+        %span.badge.badge-important #{@sep[:field]}
+      - if !@sep[:offset].nil?
+        The item name is from the first
+        %span.badge.badge-important #{@sep[:offset]}
+        character
+
+    .row-fluid
+      %span.label.label-info Notice
+      = preview_brief
+
+      - if !can_proceed_import
+        .row-fluid
+          %span.label.label-important ATTENTION
+          - failed_doc.each do |fd|
+            %li= fd[:message]
+
     .row-fluid
       - if @phrase == "1"
         - text = "Re-upload Zip:"
@@ -80,7 +166,6 @@
         - text = "Upload Zip:"
       = label_tag :file_text, text
       = file_field_tag :file, :accept => "application/zip"
-
       = submit_tag 'hidden', :style => "display:none"
 
     .form-actions
@@ -103,4 +188,12 @@
 
 
 = render 'shared/nectar_attribution'
+
+:javascript
+  $(document).ready(function () {
+    var r1 = document.getElementById('sep_default')
+    var r2 = document.getElementById('sep_char.field')
+    var r3 = document.getElementById('sep_offset')
+  }
+
 

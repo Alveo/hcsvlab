@@ -157,6 +157,10 @@ class ContributionsController < ApplicationController
     @contribution_metadata = ContributionsHelper.load_contribution_metadata(@contribution.name)
     @preview_result = []
     @phrase = "0"
+    if @sep.nil?
+      @sep = {:type => 'delimiter', :delimiter => "-", :field => "1"}
+    end
+
   end
 
   #
@@ -174,6 +178,20 @@ class ContributionsController < ApplicationController
     end
 
     zip_file = params[:file] #  ActionDispatch::Http::UploadedFile
+    sep = params[:sep]
+    case sep
+      when 'delimiter'
+        @sep = {:type => 'delimiter',
+                :delimiter => params[:delimiter].nil? ? '-' : params[:delimiter],
+                :field => params[:field].nil? ? 1 : params[:field].to_i}
+      when 'offset'
+        @sep = {:type => 'offset',
+                :offset => params[:offset].nil? ? -1 : params[:offset].to_i}
+      when 'item'
+        @sep = {:type => 'item'}
+      when 'doc'
+        @sep = {:type => 'doc'}
+    end
 
     if !zip_file.nil?
       # cp file to contrib dir (overwrite) for later use
@@ -189,13 +207,13 @@ class ContributionsController < ApplicationController
       # load preview
       @contribution = contrib
       @contribution_metadata = ContributionsHelper.load_contribution_metadata(contrib.name)
-      @preview_result = ContributionsHelper.preview_import(contrib)
+      @preview_result = ContributionsHelper.preview_import(contrib, @sep)
       @phrase = "1"
 
       render "preview"
     else
       #   import mode
-      message = ContributionsHelper.import(contrib)
+      message = ContributionsHelper.import(contrib, @sep)
 
       respond_to do |format|
         format.html {
@@ -239,7 +257,7 @@ class ContributionsController < ApplicationController
       # check duplicated name
       if (contribution_name != contrib.name) && (!Contribution.find_by_name(contribution_name).nil?)
         # conflict with existing name
-        msg = "Contribution name '#{contribution_name}' already been taken."
+        msg = "Contribution name ' #{contribution_name}' already been taken."
         logger.warn "update: #{msg}"
         conflict_error(Exception.new(msg), contrib_edit_url)
         return
