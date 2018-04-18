@@ -33,24 +33,9 @@
   .row-fluid
     .page-header
       .row-fluid
-        .span4
+        .span12
           .pull-left
             %h1= @contribution.name
-        .span8
-
-  .row-fluid
-    .span2
-    .span10
-      .row-fluid
-        %table.table
-          %tbody
-            %tr
-              %td{:rowspan => "2"} Metadata
-              %td Name/Title
-              %td= @contribution.name
-            %tr
-              %td Associated Collection
-              %td= @contribution.collection.name
 
   .row-fluid
     %h3= main_title
@@ -58,17 +43,26 @@
   .row-fluid
     To be associated with a data file, an annotation file must in some way to associate with existing item. (e.g. “4_68_4_10.wav” and “4_68_4_10.TextGrid”). You will get an error if finally one of the annotation files cannot be associated with one of the data files in the collection.
 
-  .row-fluid
-    .page-header
-
-
   = form_tag({controller: 'contributions', action: 'import'}, multipart: true, method: 'post', :id => 'import_contribution_form') do
     =hidden_field_tag 'sep', "#{@sep[:type]}"
 
-    %h3= "Tell me how to associate your file to collection item"
+    .row-fluid
+      .page-header
+
+    .row-fluid
+      - if @phrase == "1"
+        - text = "Re-upload Zip:"
+      - else
+        - text = "Upload Zip:"
+      = label_tag :file_text, text
+      = file_field_tag :file, :accept => "application/zip"
+      = submit_tag 'hidden', :style => "display:none"
+
+      %h3= "Tell me how to associate your file to collection item"
 
     .row-fluid
       Once you upload your files, we need to match them to the corresponding items in the existing collection.  The best way to do this is by finding the item name somewhere in your filename.  The options below provide different methods of achieving this.
+
     .row-fluid
       %ul.nav.nav-tabs#sep_nav
         %li#li_delimiter
@@ -148,19 +142,6 @@
             then finally this file would be associated with the collection item that contains this document.
 
     .row-fluid
-    - if !@sep.nil?
-      - if !@sep[:delimiter].nil?
-        Delimiter is
-        %span.badge.badge-important #{@sep[:delimiter]}
-      - if !@sep[:field].nil?
-        Field number is
-        %span.badge.badge-important #{@sep[:field]}
-      - if !@sep[:offset].nil?
-        The item name is from the first
-        %span.badge.badge-important #{@sep[:offset]}
-        character
-
-    .row-fluid
       %span.label.label-info Notice
       = preview_brief
 
@@ -170,14 +151,7 @@
           - failed_doc.each do |fd|
             %li= fd[:message]
 
-    .row-fluid
-      - if @phrase == "1"
-        - text = "Re-upload Zip:"
-      - else
-        - text = "Upload Zip:"
-      = label_tag :file_text, text
-      = file_field_tag :file, :accept => "application/zip"
-      = submit_tag 'hidden', :style => "display:none"
+
 
     .form-actions
       - if @phrase == "1"
@@ -193,10 +167,11 @@
 
       = link_to 'Cancel', contrib_show_path(@contribution.id), :class => "btn"
 
-  .row-fluid
-    %h3 Files To Import
-    = render "display_contribution_preview"
+    .row-fluid
+      %h3 Files To Import
+      = render "display_contribution_preview"
 
+= render 'shared/nectar_attribution'
 
 :javascript
   $(document).ready(function () {
