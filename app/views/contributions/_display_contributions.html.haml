@@ -9,10 +9,12 @@
     %thead
       %tr
         %th Contribution
+        %th Associated Collection
         %th Abstract
     %tbody
       - @contributions.each do |contrib|
         %tr
           %td
             %a{:href => "#{contrib_show_path(contrib.id)}"} #{contrib.name}
+          %td #{contrib.collection.name}
           %td #{contrib.description}

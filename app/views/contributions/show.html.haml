@@ -22,6 +22,11 @@
             - if current_user.is_superuser? || ContributionsHelper::is_owner?(current_user, @contribution)
               = link_to "Delete", contrib_delete_path, method: :delete, id: 'delete_contribution', :class => "btn btn-danger", data: {confirm: "Are you sure to delete current contribution?"}
 
+      .row-fluid
+        .span6
+          .pull-left
+            %h3="A contribution to the #{@contribution.collection.name} collection"
+
 
   .row-fluid
     .span3{:style => "overflow-wrap:break-word;"}

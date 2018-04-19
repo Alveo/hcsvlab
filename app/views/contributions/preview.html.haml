@@ -42,21 +42,26 @@
 
   .row-fluid
     To be associated with a data file, an annotation file must in some way to associate with existing item. (e.g. “4_68_4_10.wav” and “4_68_4_10.TextGrid”). You will get an error if finally one of the annotation files cannot be associated with one of the data files in the collection.
+    %h5
+      &nbsp;
+
 
   = form_tag({controller: 'contributions', action: 'import'}, multipart: true, method: 'post', :id => 'import_contribution_form') do
-    =hidden_field_tag 'sep', "#{@sep[:type]}"
-
-    .row-fluid
-      .page-header
-
     .row-fluid
       - if @phrase == "1"
         - text = "Re-upload Zip:"
       - else
         - text = "Upload Zip:"
       = label_tag :file_text, text
-      = file_field_tag :file, :accept => "application/zip"
+      %label.btn.btn-primary{:for => "my-file-selector"}
+        %input#my-file-selector{:onchange => "$('#upload-file-info').html(this.files[0].name)", :style => "display:none", :type => "file", :accept => "application/zip"}/
+        Select Zip File
+      %span#upload-file-info.label.label-info
+
+      = hidden_field_tag 'sep', "#{@sep[:type]}"
       = submit_tag 'hidden', :style => "display:none"
+
+      .page-header
 
       %h3= "Tell me how to associate your file to collection item"
 
@@ -181,5 +186,6 @@
     $('#sep_nav > li').on('click', function() {
       $('#sep').val($(this).attr('id').split('_')[1])
     });
+
   })
 
