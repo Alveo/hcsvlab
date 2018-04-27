@@ -16,6 +16,7 @@
   <title><%= h(@page_title || application_name) %></title>
   <link href="<%= opensearch_catalog_path(:format => 'xml', :only_path => false) %>" title="<%= application_name %>" type="application/opensearchdescription+xml" rel="search"/>
   <%= stylesheet_link_tag "application" %>
+  <%= stylesheet_link_tag "https://fonts.googleapis.com/css?family=Muli:400,700|Rubik:400,700" %>
   <%= javascript_include_tag "application" %>
   <%= csrf_meta_tags %>
   <%= raw(render_head_content) %>
@@ -31,23 +32,21 @@
 <% onload_text = "$('input#q').focus();" if params[:q].to_s.empty? and params[:f].to_s.empty? and params[:id].nil? %>
 <body onload="<%= onload_text %>" class="<%= render_body_class %>">
 
+<!--
 <% if (!Rails.env.production? && !Rails.env.nci?) %>
-  <!-- TOP RIGHT RIBBON: START COPYING HERE -->
   <div class="github-fork-ribbon-wrapper right">
     <div class="github-fork-ribbon">
       <span><%= Rails.env%></span>
     </div>
   </div>
-  <!-- TOP RIGHT RIBBON: END COPYING HERE -->
-
-  <!-- TOP LEFT RIBBON: START COPYING HERE -->
+  
   <div class="github-fork-ribbon-wrapper left">
     <div class="github-fork-ribbon">
       <span><%= Rails.env%></span>
     </div>
   </div>
-  <!-- TOP LEFT RIBBON: END COPYING HERE -->
 <% end %>
+-->
 
 <%= render :partial => 'shared/header_navbar' %>
 

@@ -1,0 +1,155 @@
+/* navigation.css */
+/* Bring the header navigation inline with the new Wordpress styles 2018-04 */
+
+a {
+	color: #7d786c;
+}
+
+a:hover {
+	color: #f6b717;
+}
+
+.navbar-inner {
+	background: #f6b717;
+	padding: .5rem 1rem;
+}
+
+.brand {
+	max-width: 138px;
+}
+
+.navbar .nav.pull-right {
+	margin-top: 16px;
+}
+
+.nav-link {
+	padding: .5rem 1rem;
+	text-transform: uppercase;
+	text-shadow: 0px 1px 1px #f5b410;
+	color: #ffffff;
+}
+
+.navbar .nav>li>a{
+	color: rgba(255, 255, 255, 0.8);
+	padding: .5rem 1rem;
+	text-transform: uppercase;
+	text-shadow: 0px 1px 1px #f5b410;
+}
+
+.navbar .nav li.dropdown>.dropdown-toggle .caret {
+	border-top-color: rgba(255, 255, 255, 0.8);
+}
+
+.navbar .nav>li>a:focus, .navbar .nav>li>a:hover {
+	color: #fff;
+}
+
+.navbar .nav li.dropdown>a:hover .caret, .navbar .nav li.dropdown>a:focus .caret {
+	border-top-color: #fff;
+}
+
+.navbar .nav li.dropdown.open>.dropdown-toggle, .navbar .nav li.dropdown.active>.dropdown-toggle, .navbar .nav li.dropdown.open.active>.dropdown-toggle {
+	color: #fff;
+	background-color: transparent;
+}
+.navbar .nav li.dropdown.open>.dropdown-toggle .caret, .navbar .nav li.dropdown.active>.dropdown-toggle .caret, .navbar .nav li.dropdown.open.active>.dropdown-toggle .caret {
+	border-top-color: #fff;
+}
+
+.dropdown-menu {
+	background-color: #aba28b;
+	border-collapse: collapse;
+	padding-top: 0px;
+	box-shadow: none;
+}
+.dropdown-menu .nav-link {
+	padding: .5rem 1rem;
+	border-bottom: 1px dotted #c7c6c1;
+}
+
+.dropdown-menu>li>a {
+	display: block;
+	padding: 3px 20px;
+	color: rgba(255, 255, 255, 0.8);
+	text-shadow: none;
+}
+.dropdown-menu>li>a:hover, .dropdown-menu>li>a:focus, .dropdown-submenu:hover>a, .dropdown-submenu:focus>a {
+	background-color: #aba28b;
+	background-image: none;
+	color:#fff;
+}
+
+.navbar .nav>li>.dropdown-menu:before,
+.navbar .nav>li>.dropdown-menu:after{
+	display: none;
+}
+
+#wrapper-footer {
+	border-top: 1px dotted #CCC;
+	padding: 30px 0px;
+	margin-top: 150px;
+}
+
+.site-info {
+	color: #999;
+	line-height: 18px;
+	font-size: 13px;
+}
+
+@media (max-width: 979px) {
+
+	body {
+		padding-top: 0px;
+	}
+
+	.navbar .btn-navbar {
+		margin-top: 15px;
+		padding: 0.65em 0.95rem 0.3rem;
+		background-image: none;
+		background-color: #fff;
+	}
+
+	.navbar .btn-navbar .icon-bar {
+		display: block;
+		width: 25px;
+		height: 2px;
+		background-color: #676767;
+		background-image: none;
+		box-shadow: none;
+		margin-bottom: 6px;
+	}
+
+	.nav-collapse .nav > li > a:hover, .nav-collapse .nav > li > a:focus, .nav-collapse .dropdown-menu a:hover, .nav-collapse .dropdown-menu a:focus {
+		background-color: transparent !important;
+	}
+
+	.nav-collapse .nav > li > a, .nav-collapse .dropdown-menu a {
+		padding: 9px 15px;
+		font-weight: normal !important;
+		color: #ffffff !important;
+	}
+
+	.dropdown-menu .nav-link {
+		border-bottom: 0px dotted #c7c6c1;
+	}
+}
+
+@media only screen and (min-width : 980px) {
+    body {
+        padding-top: 100px;
+    }
+}
+
+.navbar .brand {
+    padding-left: 20px;
+    height: 50px;
+}
+
+#header-navbar-fixed-top,
+.navbar-fixed-top .navbar-inner,
+.navbar-static-top .navbar-inner {
+	box-shadow: none;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	border: 0;
+}
