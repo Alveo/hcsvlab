@@ -1,12 +1,10 @@
-
--  liClass = activepath_fuzzy?([admin_index_path, account_path, saved_searches_path, search_history_path, issue_reports_path])
-%li.dropdown{ class: liClass }
+%li.dropdown
   - if current_user
     %a.dropdown-toggle{"data-toggle" => "dropdown", :href => "#", :id => 'user_util'}
-      = current_user.email
+      Account
       %b.caret
   - else
-    = link_to t('blacklight.header_links.login'), new_user_session_path, :class => "dropdown-toggle"
+    = link_to "Account", new_user_session_path, :class => "dropdown-toggle"
   %ul.util-links-other.dropdown-menu
     - if has_user_authentication_provider? and current_user
       %li= link_to t('blacklight.header_links.saved_searches'), saved_searches_path
@@ -75,7 +73,3 @@
     });
 
   });
-
-
-
-
