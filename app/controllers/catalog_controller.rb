@@ -309,7 +309,7 @@ class CatalogController < ApplicationController
         bench_start = Time.now
         super
         bench_end = Time.now
-        @profiler = ["Time for catalog search with params: f=#{params['f']} q=#{params['q']} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f)*1000)}ms)"]
+        @profiler = ["Time for catalog search with params: f=#{params['f']} q=#{params['q']} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f) * 1000)}ms)"]
         Rails.logger.debug(@profiler.first)
 
         params.delete(:fq)
@@ -400,7 +400,11 @@ class CatalogController < ApplicationController
 
     respond_to do |format|
       format.html {setup_next_and_previous_documents}
-      format.json {}
+      format.json do
+        @document_directory_url = Array.new()
+        @document_directory_url << "#{root_url}#{params[:collection]}/#{params[:itemId]}/document"
+        render
+      end
       # Add all dynamically added (such as by document extensions)
       # export formats.
       if @document
@@ -495,7 +499,7 @@ class CatalogController < ApplicationController
     end
 
     bench_end = Time.now
-    Rails.logger.debug("Time for retrieving annotations for #{params[:id]} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f)*1000)}ms)")
+    Rails.logger.debug("Time for retrieving annotations for #{params[:id]} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f) * 1000)}ms)")
   end
 
   #
@@ -600,7 +604,7 @@ class CatalogController < ApplicationController
       send_data full_text, :filename => "#{handle}.full_text", :type => "text/plain"
 
       bench_end = Time.now
-      Rails.logger.debug("Time for retrieving primary text for #{params[:id]} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f)*1000)}ms)")
+      Rails.logger.debug("Time for retrieving primary text for #{params[:id]} took: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f) * 1000)}ms)")
     rescue Exception => e
       logger.error("primary_text: #{e.message}")
       internal_error(e)
@@ -613,10 +617,44 @@ class CatalogController < ApplicationController
   def document
     begin
       item = Item.find_by_handle(params[:id])
-      doc = item.documents.find_by_file_name(params[:filename])
+
+      # check from 'catalog_document' or 'catalog_document_api'
+      doc_filename = params[:filename]
+      if doc_filename.nil?
+        #   request for /catalog/{collection_name}/{item_name}/document only, return documents in JSON
+        logger.debug "document: catalog_document_api"
+
+        respond_to do |format|
+          #format.html { raise ActionController::RoutingError.new('Not Found') }
+          format.html {flash[:error] = "Sorry, you have requested a document[#{params[:filename]}] (under item[#{params[:id]}]) that doesn't exist."
+          redirect_to catalog_path(params[:id]) and return}
+          format.json do
+            @collection = Collection.find_by_name(params[:collection])
+            @item = item
+            render
+          end
+        end
+
+        return
+      end
+
+      doc = item.documents.find_by_file_name(doc_filename)
       # check if document exists in JSON metadata from Sesame/Solr
       # This is set during Solr indexing based on a variety of metadata from Solr and Sesame
       # See add_json_metadata_field in solr_worker.rb
+
+      # implement HEAD for AlveoFS file purpose
+      if request.head?
+        if doc.present?
+          content_length = File.size(doc.file_path)
+          last_modified = doc.updated_at
+          head :ok, {'Content-Length' => content_length, 'Last-Modified' => last_modified}
+        else
+          head :bad_request
+        end
+
+        return
+      end
 
       # KL - ignore checking item.json_metadata
       # item.id and document.file_name can guarantee the proper permission for document download
@@ -902,7 +940,7 @@ class CatalogController < ApplicationController
 
           metadataSearchParam.sub!(m[0], newQuery)
         end
-      elsif ('AND'!=m.to_s and 'OR'!=m.to_s)
+      elsif ('AND' != m.to_s and 'OR' != m.to_s)
         newQuery = "all_metadata:#{m[0].to_s}"
         metadataSearchParam.sub!(m[0], newQuery)
       end
@@ -964,7 +1002,7 @@ class CatalogController < ApplicationController
   #
   #
   #
-  def wrapped_enforce_show_permissions(opts={})
+  def wrapped_enforce_show_permissions(opts = {})
     begin
       enforce_show_permissions(opts) unless @processing_index
     rescue Hydra::AccessDenied => e

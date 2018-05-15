@@ -22,3 +22,4 @@ else
   node(:"#{PROJECT_PREFIX_NAME}:documents") { @item_info.documents }
 
 end
+node(:directories) {@document_directory_url}
