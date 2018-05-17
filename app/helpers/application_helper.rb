@@ -106,4 +106,11 @@ module ApplicationHelper
     end
     return result
   end
+
+  # Return a fully qualified URL to a page in the the public project website
+  def project_url(path)
+    base = Rails.application.config.project_url
+    base << "/" unless base.end_with? "/"
+    "#{base}#{path}"
+  end
 end

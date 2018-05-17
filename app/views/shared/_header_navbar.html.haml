@@ -16,11 +16,11 @@
               %b.caret
             %ul.dropdown-menu
               %li
-                %a.nav-link{href: "http://alveo.edu.au/about/"} Profile
+                %a.nav-link{href: project_url('about') } Profile
               %li
-                %a.nav-link{href: "http://alveo.edu.au/contact/"} Contact
+                %a.nav-link{href: project_url('contact') } Contact
               %li
-                %a.nav-link{href: "http://alveo.edu.au/posts/"} Blog
+                %a.nav-link{href: project_url('posts') } Blog
           %li.dropdown
             %a.dropdown-toggle{"href" => "#", "data-toggle" => "dropdown"}
               Data
@@ -40,7 +40,7 @@
               %b.caret
             %ul.dropdown-menu
               %li
-                %a.nav-link{href: "http://alveo.edu.au/tutorials/"} Tutorials
-                %a.nav-link{href: "http://alveo.edu.au/documentation/"} Documentation
+                %a.nav-link{href: project_url('tutorials') } Tutorials
+                %a.nav-link{href: project_url('documentation') } Documentation
                 %a.nav-link{href: "https://support.alveo.edu.au/support/home/"} Support
             = render :partial => '/user_util_links'

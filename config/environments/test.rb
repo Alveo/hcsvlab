@@ -5,6 +5,7 @@ HcsvlabWeb::Application.configure do
   Rails.application.routes.default_url_options[:host] = 'localhost:3000'
 
   config.galaxy_url = 'http://localhost:8080/root'
+  config.project_url = 'http://alveo.edu.au/'
 
   # Base directory where user contributed annotations will be stored
   config.user_annotations_location = "/data/contributed_annotations/"
