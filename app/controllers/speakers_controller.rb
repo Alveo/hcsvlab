@@ -57,7 +57,7 @@ class SpeakersController < ApplicationController
         speaker_id = ""
         if json.present?
           speaker_id = SpeakersHelper.create_speaker(collection_name, json)
-          speaker_uri = request.original_url + speaker_id
+          speaker_uri = request.original_url + "/" + speaker_id
           render json: {success: {
             id: "success",
             message: "speaker created",

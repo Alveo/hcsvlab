@@ -10,7 +10,7 @@ describe Contribution do
   it "has correct associated collection" do
     contrib = FactoryGirl.create(:contribution)
     coll = Collection.find_by_id(contrib.collection_id)
-    expect(contrib.name).to eq("#{coll.name}-contrib")
+    expect(contrib.name).to start_with("#{coll.name}-contrib")
   end
 end
 

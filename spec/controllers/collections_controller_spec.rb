@@ -1,25 +1,30 @@
 require 'spec_helper'
 
 RSpec.describe CollectionsController, :type => :controller do
+
   before :each do
     request.env["HTTP_ACCEPT"] = 'text/html'
-    @collection = create(:collection)
   end
+
+  let(:data_owner) {FactoryGirl.create(:user_data_owner)}
+  let(:my_collection) {FactoryGirl.create(:collection, owner: data_owner)}
 
   # shared_examples 'public access to controllers' do
   describe 'GET collection home page' do
+
     context 'with params[:name]', :focus => true do
       it "populates a specific collection" do
-        get :show, id: @collection.name
-        expect(assigns(:collection)).to eq @collection
-        expect(assigns(:attachment_url)).to eq collection_attachments_path(@collection.id)
+        sign_in data_owner
+        get :show, id: my_collection.name
+        expect(assigns(:collection)).to eq my_collection
+        expect(assigns(:attachment_url)).to eq collection_attachments_path(my_collection.id)
       end
 
       it "renders the :index template" do
         # = render :file => '/collections/show'
-        get :show, id: @collection.name
+        sign_in data_owner
+        get :show, id: my_collection.name
         expect(response).to render_template :show
-
       end
 
     end

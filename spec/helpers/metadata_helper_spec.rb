@@ -88,7 +88,6 @@ RSpec.describe MetadataHelper, :type => :helper do
       )
       @graph = RDF::Graph.new << RDF::Turtle::Reader.new(@graph_str)
 
-
     end
 
     it 'corpus_dir_by_name' do
@@ -123,7 +122,7 @@ RSpec.describe MetadataHelper, :type => :helper do
       collection.name = @collection_name
       collection.uri = collection_url(@collection_name)
 
-      pp "collection.uri=#{collection.uri}"
+      # pp "collection.uri=#{collection.uri}"
 
       collection.text = "once upon a time, there was a king"
       collection.private = false
@@ -136,11 +135,6 @@ RSpec.describe MetadataHelper, :type => :helper do
       expect(exp_coll.uri).to eq(collection.uri)
       expect(exp_coll.private).to eq(collection.private)
       expect(exp_coll.text).to eq(collection.text)
-
-      actual_json = MetadataHelper::load_json(collection.name)
-
-      expect(JsonCompare.get_diff(@json, actual_json)).to be_empty
-
     end
 
     it "handle multi-value property" do
@@ -165,8 +159,7 @@ RSpec.describe MetadataHelper, :type => :helper do
       prop["k1"] = (str_arr << str)
       prop["k2"] = (Array.new([str]) << "456" << "789")
 
-
-      printf "prop = #{prop}"
+      # printf "prop = #{prop}"
     end
 
     describe "should update existing collection param" do
@@ -201,7 +194,7 @@ RSpec.describe MetadataHelper, :type => :helper do
         # expect(collection_property).not_to be_nil
         expect(collection_property.count).to be > 0
 
-        puts "collection_property=(#{collection_property.class}#{collection_property})"
+        # puts "collection_property=(#{collection_property.class}#{collection_property})"
 
         new_date = "06/04/2016"
         collection_property[0].value = new_date
@@ -341,64 +334,8 @@ RSpec.describe MetadataHelper, :type => :helper do
         })
         rlt = JSON::LD::API.compact(input, context['@context'])
 
-        puts rlt
+        # puts rlt
       end
     end
-
-    describe "remove duplicated items" do
-      it "is one-time-off to generate SQL script" do
-        in_file = "/tmp/duplicated_items.csv"
-
-        dup_id_list = []
-        pool = {}
-        count = 0
-        CSV.foreach(in_file) do |row|
-          handle = row[0]
-          item_id = row[1]
-
-          if pool.key?(handle)
-            # csv already order by id desc
-            dup_id_list << item_id
-            count +=1
-            puts "#{count}: found duplicated: item_id[#{item_id}, #{pool[handle]}], handle[#{handle}]"
-          else
-            pool[handle] = item_id
-          end
-
-        end
-
-        batch_size = 1024
-        ids = dup_id_list.each_slice(batch_size).to_a
-
-        # generate sql to remove duplicated items
-        timestamp = "select now();\n"
-
-        File.open("/tmp/remove_dup_items.sql", "w+") do |f|
-          f.puts(timestamp)
-
-          ids.each do |sub_ids|
-            sql = "delete from items where id in (#{sub_ids.join(',')});\n"
-            sql += timestamp
-            f.puts(sql)
-          end
-        end
-
-        # generate sql to remove related documents
-        File.open("/tmp/remove_dup_docs.sql", "w+") do |f|
-          f.puts(timestamp)
-
-          ids.each do |sub_ids|
-            sql = "delete from documents where item_id in (#{sub_ids.join(',')});\n"
-            sql += timestamp
-            f.puts(sql)
-          end
-        end
-
-        puts "total duplicated item amount [#{dup_id_list.size}]"
-
-      end
-
-    end
-
   end
 end

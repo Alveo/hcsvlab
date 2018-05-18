@@ -89,6 +89,7 @@ module JsonLdHelper
     hash["dc"] = {"@id" => "http://purl.org/dc/elements/1.1/"}
     hash["cld"] = {"@id" => "http://purl.org/cld/terms/"}
     hash["faims"] = {"@id" => "http://fedarch.org/schema/"}
+    hash["dbp"] = {"@id" => "http://dbpedia.org/ontology/"}
 
     hash
   end

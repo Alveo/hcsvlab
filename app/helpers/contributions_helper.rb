@@ -5,8 +5,6 @@ require 'mimemagic'
 
 module ContributionsHelper
 
-  # include CollectionsHelper
-
   SESAME_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/sesame.yml")[Rails.env] unless defined? SESAME_CONFIG
 
   # Load contribution's metadata, return json
@@ -21,15 +19,15 @@ module ContributionsHelper
 
     #   compose query
     query = %(
-    PREFIX alveo: <http://alveo.edu.au/schema/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX alveo: <http://alveo.edu.au/schema/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
 
-    SELECT ?property ?value
-    WHERE {
-    	?contrib a alveo:Contribution.
-    	?contrib dcterms:identifier "#{contrib.id}".
-			?contrib ?property ?value.
-    }
+      SELECT ?property ?value
+      WHERE {
+        ?contrib a alveo:Contribution.
+        ?contrib dcterms:identifier "#{contrib.id}".
+        ?contrib ?property ?value.
+      }
     )
 
     # logger.debug "load_contribution_metadata: query[#{query}]"
@@ -779,6 +777,171 @@ module ContributionsHelper
     logger.debug "export_as_zip: end - rlt[#{rlt}]"
 
     return rlt
+  end
+
+  # Upsert contribution in DB and Sesame
+  #
+  # attr:
+  #
+  # - :name contrib name
+  # - :owner contrib owner (current_user)
+  # - :collection related collection (name)
+  # - :description contrib description
+  # - :abstract contrib abstract
+  # - :file uploaded file
+  #
+  def self.upsert_contribution_core(attr)
+    logger.debug "upsert_contribution_core: start - attr[#{attr}]"
+
+    query = ""
+    msg = ""
+    proceed_sesame = false
+
+    if !attr[:id].nil?
+      #   contribution contains id => update
+      contrib = Contribution.find_by_id(attr[:id])
+    else
+      contrib = Contribution.find_by_name(attr[:name])
+    end
+
+    contrib_abstract = attr[:abstract]
+
+    if contrib.nil?
+      #   contribution not exist, create a new one
+
+      # DB
+      contrib = Contribution.new
+      contrib.name = attr[:name]
+      contrib.owner = attr[:owner]
+      contrib.collection = Collection.find_by_name(attr[:collection])
+      contrib.description = attr[:description]
+      contrib.save!
+
+      # retrieve contribution id to compose uri
+      uri = UrlGenerator.new.contrib_show_url(contrib.id)
+
+      # compose query
+      #
+      # e.g.,
+      #
+      # PREFIX alveo: <http://alveo.edu.au/schema/>
+      # PREFIX dcterms: <http://purl.org/dc/terms/>
+      #
+      # INSERT DATA {
+      #   <http://localhost:3000/contrib/9> a alveo:Contribution;
+      #   dcterms:identifier "9";
+      #   dcterms:title "19Oct.1";
+      #   dcterms:creator "Data Owner";
+      #   dcterms:created "2017-10-18 23:35:08 UTC";
+      #   dcterms:abstract "anyway...".
+      # }
+
+      query = %(
+        PREFIX alveo: <http://alveo.edu.au/schema/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        INSERT DATA {
+          <#{uri}> a alveo:Contribution;
+          dcterms:identifier "#{MetadataHelper.sqarql_well_formed(contrib.id)}";
+          dcterms:title "#{MetadataHelper.sqarql_well_formed(contrib.name)}";
+          dcterms:creator "#{MetadataHelper.sqarql_well_formed(contrib.owner.full_name)}";
+          dcterms:created "#{MetadataHelper.sqarql_well_formed(contrib.created_at)}";
+          dcterms:abstract "#{MetadataHelper.sqarql_well_formed(contrib_abstract)}".
+        }
+      )
+
+      msg = "New contribution '#{contrib.name}' (#{uri}) created"
+      proceed_sesame = true
+
+    else
+      # contribution exists, just update
+      # only name, description in DB need to be updated
+      if !attr[:name].nil?
+        contrib.name = attr[:name]
+      end
+      contrib.description = attr[:description]
+      contrib.save!
+
+      # retrieve contribution id to compose uri
+      uri = UrlGenerator.new.contrib_show_url(contrib.id)
+
+      # compose query
+      #
+      # Uses 2 operations, so no matter resource <https://app.alveo.edu.au/contrib/999> exists or not, it would update (delete then insert) for sure
+      #
+      # e.g.,
+      #
+      # PREFIX alveo: <http://alveo.edu.au/schema/>
+      # PREFIX dcterms: <http://purl.org/dc/terms/>
+      #
+      # DELETE WHERE {
+      #   ?contrib ?property ?value.
+      #   ?contrib a alveo:Contribution .
+      #   ?contrib dcterms:identifier "999" .
+      # };
+      #
+      # INSERT DATA {
+      #   <https://app.alveo.edu.au/contrib/999> a alveo:Contribution;
+      #   dcterms:identifier "999";
+      #   dcterms:title "Austalk Manual Transcriptions";
+      #   dcterms:creator "Steve Cassidy";
+      #   dcterms:created "2018-03-13 00:09:13 UTC";
+      #   dcterms:abstract "blahblah".
+      # }
+
+      query = %(
+        PREFIX alveo: <http://alveo.edu.au/schema/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        DELETE WHERE {
+          ?contrib ?property ?value.
+          ?contrib a alveo:Contribution .
+          ?contrib dcterms:identifier "#{contrib.id}" .
+        };
+
+        INSERT DATA {
+          <#{uri}> a alveo:Contribution;
+          dcterms:identifier "#{MetadataHelper.sqarql_well_formed(contrib.id)}";
+          dcterms:title "#{MetadataHelper.sqarql_well_formed(contrib.name)}";
+          dcterms:creator "#{MetadataHelper.sqarql_well_formed(contrib.owner.full_name)}";
+          dcterms:created "#{MetadataHelper.sqarql_well_formed(contrib.created_at)}";
+          dcterms:abstract "#{MetadataHelper.sqarql_well_formed(contrib_abstract)}".
+        }
+      )
+
+      # start to process document part
+
+      if attr[:file].nil?
+        # no file uploaded
+        msg = "Contribution '#{contrib.name}' (#{uri}) updated"
+        proceed_sesame = true
+      else
+        # validate file to be added to contribution
+        vld_rlt = ContributionsHelper.validate_contribution_file(contrib.id, attr[:file])
+
+        if vld_rlt[:error].nil?
+          # no news is good news, validation passed
+          add_rlt = ContributionsHelper.add_document_to_contribution(contrib.id, vld_rlt[:item_handle], attr[:file], vld_rlt[:mode])
+          msg = "Contribution '#{contrib.name}' (#{uri}) updated"
+        else
+          msg = "Contribution '#{contrib.name}' (#{uri}) update failed: #{vld_rlt[:error]}"
+        end
+      end
+    end
+
+    # sesame repo
+    if proceed_sesame
+      repo = MetadataHelper.get_repo_by_collection(contrib.collection.name)
+
+      logger.debug "upsert_contribution_core: sparql query[#{query}]"
+
+      repo.sparql_query(query)
+    end
+
+    logger.debug "upsert_contribution_core: end - contrib.id[#{contrib.id}]"
+
+    return msg, contrib.id
+
   end
 
 end

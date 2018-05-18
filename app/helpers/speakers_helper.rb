@@ -1,21 +1,6 @@
 
 module SpeakersHelper
 
-  # @@CONTEXT_JSON = JSON.parse(%(
-  # {
-  #   "@context" : {
-  #     "dbp": "http://dbpedia.org/ontology/",
-  #     "dcterms": "http://purl.org/dc/terms/",
-  #     "foaf": "http://xmlns.com/foaf/0.1/",
-  #     "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#",
-  #     "iso639": "http://downlode.org/rdf/iso-639/languages#",
-  #     "olac": "http://www.language-archives.org/OLAC/1.1/",
-  #     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-  #     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-  #     "xsd": "http://www.w3.org/2001/XMLSchema#"
-  #   }
-  # }))['@context']
-
   public
 
   # Return input identifier by collection name through sesame server
@@ -167,18 +152,16 @@ module SpeakersHelper
   # PREFIX dcterms: <http://purl.org/dc/terms/>
   # PREFIX foaf: <http://xmlns.com/foaf/0.1/>
   #
-  # DELETE {
-  #   ?speaker foaf:name ?value .
-  #   ?speaker foaf:age ?value .
-  # }
-  # INSERT {
-  #   ?speaker foaf:name "Rodney_1" .
-  #   ?speaker foaf:age "12" .
-  # }
-  # WHERE {
+  # DELETE WHERE {
   #   ?speaker ?property ?value .
   #   ?speaker a foaf:Person .
-  #   ?speaker dcterms:identifier "1" .
+  #   ?speaker dcterms:identifier "001" .
+  # };
+  #
+  # INSERT DATA {
+  #   <http://localhost:3000/speakers/2nd_coll/001> a foaf:Person;
+  #   foaf:name "Rodney" ;
+  #   foaf:age "12" .
   # }
   #
   # According to https://www.w3.org/TR/sparql11-update/#deleteInsert, DELETE then INSERT
@@ -209,29 +192,28 @@ module SpeakersHelper
     speaker_metadata = JSON::LD::API.compact(json, JsonLdHelper::default_context).except("@context")
 
     # compose DELETE and INSERT part
-    query_delete = "DELETE {\n"
-    query_insert = "INSERT {\n"
+    query_delete = %(
+      DELETE WHERE {
+        ?speaker ?property ?value .
+        ?speaker a foaf:Person .
+        ?speaker dcterms:identifier "#{speaker_id}" .
+      };
+
+    )
+
+    uri = UrlGenerator.new.show_speaker_url(:collection => collection_name, :speaker_id => speaker_id)
+    query_insert = %(
+      INSERT DATA {
+        <#{uri}> a foaf:Person ;
+    )
 
     speaker_metadata.each do |k, v|
-      if k != "dcterms:identifier"
-        # don't update identifier in case inconsistent
-        query_delete += %(  ?speaker #{k} ?value .\n)
-        query_insert += %(  ?speaker #{k} "#{v}" .\n)
-      end
+      query_insert += %(  #{k} "#{v}" ;\n)
     end
 
-    query_delete += "}\n"
     query_insert += "}\n"
 
     query += query_delete + query_insert
-
-    # compose WHERE part
-    query += %(
-WHERE {
-  ?speaker ?property ?value .
-  ?speaker a foaf:Person .
-  ?speaker dcterms:identifier "#{speaker_id}"
-}    )
 
     logger.debug "update_speaker: query[#{query}]"
 

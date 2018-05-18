@@ -6,9 +6,10 @@ describe SpeakersController, :type => :controller do
 
   before :each do
     request.env["HTTP_ACCEPT"] = 'application/json'
-    @collection = create(:collection)
-    @collection_no_speaker = create(:collection_no_speaker)
   end
+
+  let(:collection) {FactoryGirl.create(:collection)}
+  let(:collection_no_speaker) {FactoryGirl.create(:collection_no_speaker)}
 
   # GET /speakers/:collection/
   describe 'GET list of speaker identifiers (URIs) associated with specific collection' do

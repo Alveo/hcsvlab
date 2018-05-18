@@ -321,7 +321,9 @@ end
 describe User, 'validation' do
   it {should validate_presence_of(:first_name)}
   it {should validate_presence_of(:last_name)}
-  it {should validate_presence_of(:role)}
+
+  # if user status is 'U' - pending approval, there is no role association
+  # it {should validate_presence_of(:role)}
 
   it {should validate_presence_of(:email)}
   it {should validate_uniqueness_of(:email)}
