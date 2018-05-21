@@ -1,12 +1,10 @@
-
--  liClass = activepath_fuzzy?([admin_index_path, account_path, saved_searches_path, search_history_path, issue_reports_path])
-%li.dropdown{ class: liClass }
+%li.dropdown
   - if current_user
     %a.dropdown-toggle{"data-toggle" => "dropdown", :href => "#", :id => 'user_util'}
-      = current_user.email
+      Account
       %b.caret
   - else
-    = link_to t('blacklight.header_links.login'), new_user_session_path, :class => "dropdown-toggle"
+    = link_to "Account", new_user_session_path, :class => "dropdown-toggle"
   %ul.util-links-other.dropdown-menu
     - if has_user_authentication_provider? and current_user
       %li= link_to t('blacklight.header_links.saved_searches'), saved_searches_path
@@ -37,7 +35,7 @@
         %li.divider
         %li= link_to "Admin", admin_index_path
       %li.divider
-      %li= link_to "Help", "http://alveo.edu.au/help", :target => "_blank"
+      %li= link_to "Help", project_url('help'), :target => "_blank"
       %li= link_to "View Usage Metrics", view_metrics_path
       %li= link_to "Report To Admin", new_issue_report_path(:url => request.original_url)
     %li.divider
@@ -75,7 +73,3 @@
     });
 
   });
-
-
-
-

@@ -11,3 +11,5 @@ node(:metadata) do
   end
   hash
 end
+node(:items) { @collection.items.collect {|i| item_url(@collection.name, i.get_name)} }
+node(:directories) { @collection.items.collect {|i| item_url(@collection.name, i.get_name)} }

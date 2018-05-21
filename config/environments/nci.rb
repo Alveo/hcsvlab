@@ -9,6 +9,7 @@ HcsvlabWeb::Application.configure do
   Rails.application.routes.default_url_options[:protocol] = 'https'
 
   config.galaxy_url = 'http://galaxy.alveo.edu.au/root'
+  config.project_url = 'http://alveo.edu.au/'
 
   # Base directory where user contributed annotations will be stored
   config.user_annotations_location = "/mnt/volume/alveo-production-data"

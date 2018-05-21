@@ -43,8 +43,7 @@ class CollectionsController < ApplicationController
           @collections = my_collections
         end
 
-        # @collections << collections_by_name
-        @collections << collections_by_user_type
+        @collections.concat(collections_by_user_type)
       }
     end
   end
