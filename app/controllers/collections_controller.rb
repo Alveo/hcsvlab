@@ -92,7 +92,7 @@ class CollectionsController < ApplicationController
         #
         # prepare collection title
         begin
-          @collection_title = @collection.collection_properties.select{|p| p.property == MetadataHelper::PFX_TITLE}.first.value
+          @collection_title = @collection.collection_properties.select {|p| p.property == MetadataHelper::PFX_TITLE}.first.value
         rescue Exception => e
           logger.error "show: can't retrieve collection title from collection_properties due to [#{e.message}], use collection name instead"
           @collection_title = @collection.name
@@ -274,6 +274,16 @@ class CollectionsController < ApplicationController
             :collection_name => 'collection name'
           }
         )
+
+        # check duplicated collection
+        if !Collection.find_by_name(@collection_name).nil?
+          #   collection already exists
+          msg = "collection '#{@collection_name}' already exists. Please choose a new name."
+          redirect_to web_create_collection_path(id: @collection_name), flash: {error: msg}
+
+          return
+
+        end
 
         # Validate and sanitise additional metadata fields
         additional_metadata = validate_collection_additional_metadata(params)
@@ -1527,7 +1537,7 @@ class CollectionsController < ApplicationController
   # collection owner = superuser + data_owner
   # select options, "owner full name" => "owner id"
   def approved_collection_owners
-    (User.approved_data_owners + User.approved_superusers).map{|o| ["#{o.full_name} (#{o.email})", "#{o.id}"]}.sort!.to_h
+    (User.approved_data_owners + User.approved_superusers).map {|o| ["#{o.full_name} (#{o.email})", "#{o.id}"]}.sort!.to_h
   end
 
 end

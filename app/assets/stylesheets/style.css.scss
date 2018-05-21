@@ -184,10 +184,25 @@ label.btn.checkbox input[type="checkbox"] {
   -webkit-border-radius: 4px; -moz-border-radius: 4px; border-radius: 4px;
 }
 
+.alert-notice,
 .alert-info {
   background-color: rgba(254, 216, 117, 0.5);
   border: 0px solid #FBEED5;
   color: #333;
+}
+
+.alert-alert,
+.alert-danger,
+.alert-error {
+  color: #b94a48;
+  background-color: #f2dede;
+  border-color: #eed3d7;
+}
+
+.alert-success {
+  color: #468847;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
 }
 
 .close {
