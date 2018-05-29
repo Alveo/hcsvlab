@@ -968,7 +968,7 @@ class CatalogController < ApplicationController
   #
   def retrieve_and_set_item_id
     handle = nil
-    handle = "#{params[:collection]}:#{params[:itemId]}" if params[:collection].present? and params[:itemId].present?
+    handle = "#{params[:collection]}:#{params[:itemId]}" if (params[:collection].present? && params[:itemId].present?)
     if handle.present?
       item = Item.find_by_handle(handle)
       if item.nil?
@@ -1004,9 +1004,20 @@ class CatalogController < ApplicationController
   #
   def wrapped_enforce_show_permissions(opts = {})
     begin
-      enforce_show_permissions(opts) unless @processing_index
+      # skip if current user is collection owner
+      # solr field "read_access_person_ssim"/"edit_access_person_ssim" stores collection owner info, but update collection owner didn't update these solr fields as well, so enforce_show_permissions would treat new owner as "You do not have sufficient access privileges to read this document, which has been marked private."
+      # it's quite embarrassing to add this checking because its even more embarrassing/terrify to update solr fields
+      collection = Collection.find_by_name(params[:collection])
+      is_owner = false
+      if collection.present?
+        is_owner = (@current_user.id == collection.owner_id)
+      end
+
+      logger.debug "wrapped_enforce_show_permissions: is_owner[#{is_owner}]"
+
+      enforce_show_permissions(opts) unless (@processing_index || is_owner)
     rescue Hydra::AccessDenied => e
-      logger.error "wrapped_enforce_show_permissions: opts[#{opts}], Hydra::AccessDenied[#{e.inspect}, subject:#{e.subject}]"
+      logger.error "wrapped_enforce_show_permissions: opts[#{opts}], Hydra::AccessDenied[#{e.inspect}, subject:[#{e.subject}]"
       respond_to do |format|
         format.html {raise e}
         format.any {render :json => {:error => "access-denied"}.to_json, :status => 403}

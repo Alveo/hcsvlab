@@ -1,6 +1,6 @@
 class Licence < ActiveRecord::Base
 
-  attr_accessible :name, :owner_id, :text, :private
+  attr_accessible :id, :name, :owner_id, :text, :private
   belongs_to :owner, class_name: 'User'
   scope :only_public, where(private:false)
 
