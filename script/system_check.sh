@@ -7,6 +7,7 @@
 # 3. Solr is up
 # 4. The workers are running
 # 5. The web app is running
+# 6. RabbitMQ is up and on the right ports (for alveo-workders:ingest)
 #
 
 RET_STATUS=0
@@ -16,6 +17,11 @@ ACTIVEMQ_USER="admin:admin"
 
 WEB_URL="http://localhost:3000/version.json"
 JAVA_PORT_NUMBER=8983
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
+#echo "${red}red text ${green}green text${reset}"
 
 if [ ! -z "$RAILS_ENV" -a "$RAILS_ENV" != "development" ]
 then
@@ -54,36 +60,36 @@ done
 
 if [ "$aqm_status" == "200" ]
 then
-  echo "+ ActiveMQ is listening on port 8161 (status= $aqm_status)"
+  echo "${green}+ ActiveMQ is listening on port 8161 (status= $aqm_status)${reset}"
 else
-  echo "- WARN: It looks like ActiveMQ is not running (status= $aqm_status)"
+  echo "${red}- WARN: It looks like ActiveMQ is not running (status= $aqm_status)${reset}"
   RET_STATUS=1
 
 fi
 
-mq_url="http://localhost:8161"
-
-amq_61616=`netstat -an | grep 61616 | wc -l`
+mq_port=61616
+amq_61616=`netstat -an | grep $mq_port | wc -l`
 
 if [ $amq_61616 -eq 0 ]
 then
-  echo "- WARN: ActiveMQ is not listening on port 61616"
+  echo "${red}- WARN: ActiveMQ is not listening on port $mq_port${reset}"
   RET_STATUS=1
 else
-  echo "+ ActiveMQ is listening on port 61616"
+  echo "${green}+ ActiveMQ is listening on port $mq_port${reset}"
 fi
 
-amq_61613=`netstat -an | grep 61613 | wc -l`
+mq_port=61613
+amq_61613=`netstat -an | grep $mq_port | wc -l`
 
 if [ $amq_61613 -eq 0 ]
 then
-  echo "- WARN: ActiveMQ is not listening on port 61613"
+  echo "${red}- WARN: ActiveMQ is not listening on port $mq_port${reset}"
   RET_STATUS=1
 else
-  echo "+ ActiveMQ is listening on port 61613"
+  echo "${green}+ ActiveMQ is listening on port $mq_port${reset}"
 fi
 
-if [ $RET_STATUS -eq 1 ] && [ "$REVIVE" == "true" ]
+if [ $RET_STATUS -eq 1 ] && [ "$REVIVE" == true ]
 then
   echo "Reviving ActiveMQ..."
   pkill -9 -f activemq
@@ -91,41 +97,43 @@ then
   sleep 30
 fi
 
-
 # Servlet Container - Jetty or Tomcat
 
 echo ""
 echo "Checking the Java Container..."
 
+sesame_url="http://10.0.0.11:8080"
+
 let count=0
 while [ $count -lt 15 -a "$java_status" == "" ]
 do
   sleep 2
-  sesame_status=`curl -I ${JAVA_URL}openrdf-sesame/home/overview.view 2>/dev/null  | head -1 | awk '{print $2}' `
+  sesame_status=`curl -I ${sesame_url}/openrdf-sesame/home/overview.view 2>/dev/null  | head -1 | awk '{print $2}' `
   let count=count+1
 done
 
 # Sesame
 if [ "$sesame_status" == "200"  -o "$sesame_status" == "302" ]
 then
-  echo "+ It looks like Sesame is available (status= $sesame_status)"
+  echo "${green}+ It looks like Sesame is available (status= $sesame_status)${reset}"
 else
-  echo "- WARN: It looks like Sesame is not running (status= $sesame_status)"
+  echo "${red}- WARN: It looks like Sesame is not running (status= $sesame_status)${reset}"
   RET_STATUS=2
 fi
 
 # Solr
-solr_status=`curl -I ${JAVA_URL}solr/admin/ping 2>/dev/null  | head -1 | awk '{print $2}' `
+solr_url="http://10.0.0.7:8080"
+solr_status=`curl -I ${solr_url}/solr/admin/ping 2>/dev/null  | head -1 | awk '{print $2}' `
 
 if [ "$solr_status" == "200" -o "$solr_status" == "302" ]
 then
-  echo "+ It looks like Solr is available (status= $solr_status)"
+  echo "${green}+ It looks like Solr is available (status= $solr_status)${reset}"
 else
-  echo "- WARN: It looks like Solr is not running (status= $solr_status)"
+  echo "${red}- WARN: It looks like Solr is not running (status= $solr_status)${reset}"
   RET_STATUS=2
 fi
 
-if [ $RET_STATUS -eq 2 ] && [ "$REVIVE" == "true" ]
+if [ $RET_STATUS -eq 2 ] && [ "$REVIVE" == true ]
 then
   echo "Reviving Tomcat..."
   pkill -9 -f catalina
@@ -142,13 +150,13 @@ a13g_status=` ps auxw | grep [p]oller | wc -l `
 
 if [ $a13g_status -ge 1 ]
 then
-  echo "+ It looks like the A13g pollers are running (processes= $a13g_status)"
+  echo "${green}+ It looks like the A13g pollers are running (processes= $a13g_status)${reset}"
 else
-  echo "- WARN: It looks like something is wrong with the A13g pollers (processes= $a13g_status)"
+  echo "${red}- WARN: It looks like something is wrong with the A13g pollers (processes= $a13g_status)${reset}"
   RET_STATUS=3
 fi
 
-if [ $RET_STATUS -gt 0 ] && [ "$REVIVE" == "true" ]
+if [ $RET_STATUS -gt 0 ] && [ "$REVIVE" == true ]
 then
   echo "Reviving workers..."
   cd /home/devel/hcsvlab-web/current && nohup bundle exec rake a13g:stop_pollers a13g:start_pollers > nohup_a13g_pollers.out 2>&1
@@ -168,14 +176,31 @@ done
 
 if [ "$web_status" == "200" ]
 then
-  echo "+ The Web App is listening on port $WEB_PORT_NUMBER (status= $web_status)"
+  echo "${green}+ The Web App is listening on port $WEB_PORT_NUMBER (status= $web_status)${reset}"
 else
-  echo "- WARN: It looks like the Web App is not running (status= $web_status)"
+  echo "${red}- WARN: It looks like the Web App is not running (status= $web_status)${reset}"
   RET_STATUS=4
 fi
 
-# End
+# RabbitMQ
 
 echo ""
+echo "Checking RabbitMQ..."
 
-exit $RET_STATUS
+rmq_port=5672
+
+rmq_cmd=`netstat -an | grep $rmq_port | wc -l`
+
+if [ $rmq_cmd -eq 0 ]
+then
+  echo "${red}- WARN: RabbitMQ is not listening on port $rmq_port${reset}"
+  RET_STATUS=5
+else
+  echo "${green}+ RabbitMQ is listening on port $rmq_port${reset}"
+fi
+
+# End
+echo ""
+echo "Done."
+
+#exit $RET_STATUS

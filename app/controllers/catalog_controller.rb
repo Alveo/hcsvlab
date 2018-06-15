@@ -1009,7 +1009,7 @@ class CatalogController < ApplicationController
       # it's quite embarrassing to add this checking because its even more embarrassing/terrify to update solr fields
       collection = Collection.find_by_name(params[:collection])
       is_owner = false
-      if collection.present?
+      if collection.present? && @current_user.present?
         is_owner = (@current_user.id == collection.owner_id)
       end
 

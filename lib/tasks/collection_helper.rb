@@ -1,6 +1,7 @@
 require 'find'
 require "#{Rails.root}/lib/rdf-sesame/hcsvlab_server.rb"
 require "#{Rails.root}/app/helpers/metadata_helper"
+require 'csv'
 
 APP_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/hcsvlab-web_config.yml")[Rails.env] unless defined? APP_CONFIG
 SESAME_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/sesame.yml")[Rails.env] unless defined? SESAME_CONFIG
@@ -350,6 +351,117 @@ def fix_item(file_name)
   rlt = "Task finished at #{end_time} and last #{duration} seconds. Total error item(s): #{total_err_items}. Out file: #{file_name}.out"
 
   return rlt
+end
+
+#
+# Check missing speaker data (austalk). Generate CSV for further action.
+#
+def check_speaker_data(collection_name, file)
+  rlt = "done"
+
+  out_filename = "doc_not_found.csv"
+  out_file = open("#{out_filename}", 'w')
+  out_file << "university,source file path,item handle,document file path\n"
+
+  ok_file_count = 0
+  not_found_count = 0
+
+  start_time = Time.now
+
+  CSV.foreach(file, :headers => true) do |csv_line|
+    univ = csv_line['University']
+    folder = csv_line['Source Path']
+
+    files = Dir.glob("#{folder}/**/*").select{|f| File.file? f}
+    files.each do |f|
+
+      item_handle = "#{collection_name}:" + extract_handle_from_filename(f)
+
+      sql = %(
+        select i.handle as item_handle, d.file_path as doc_path
+        from collections c, items i, documents d
+        where
+          c.name='#{collection_name}'
+          and i.collection_id=c.id
+          and i.id=d.item_id
+          and i.handle='#{item_handle}'
+          and d.file_path='#{f}';
+      )
+
+      result = ActiveRecord::Base.connection.execute(sql)
+      if result.count > 0
+        ok_file_count += 1
+      else
+
+        logger.warn "file[#{f}] not found in DB.documents"
+
+        # further check whether item exists
+
+        sql = %(
+          select i.handle
+          from collections c, items i
+          where
+            c.name='#{collection_name}'
+            and i.collection_id=c.id
+            and i.handle='#{item_handle}';
+        )
+
+        result = ActiveRecord::Base.connection.execute(sql)
+        if result.count == 0
+          # item not exists
+          item_handle = 'N/A'
+        end
+
+        doc_path = 'N/A'
+
+        not_found_count += 1
+
+        #   output
+        puts "file[#{f}] not found, item[#{item_handle}]\n"
+        out_file << "#{univ},#{f},#{item_handle},#{doc_path}\n"
+      end
+
+    end
+  end
+
+  out_file.close
+
+  end_time = Time.now
+  duration = (end_time - start_time) / 1.second
+
+  rlt = "Task finished at #{end_time} and last #{duration} seconds. Total processed file(s): #{ok_file_count+not_found_count}, found [#{not_found_count}] file(s) not in DB.documents. Out file: #{out_filename}"
+
+  return rlt
+
+end
+
+#
+# Extract item handle from filename.
+#
+# - file basename split by '-', then take the first part.
+# - if handle ends with non-number character, such as 'A', 'B',..., remove this character
+#
+# e.g.,
+#
+# /mnt/volume/austalk/austalk-published/audio/CDUD/1_1065/2/sentences/1_1065_2_16_001-ch1-maptask.wav => 1_1065_2_16_001
+# /mnt/volume/austalk/austalk-published/audio/UNSW/1_532/1/story/1_532_1_3_001A-ch1-maptask.wav => 1_532_1_3_001
+#
+#
+def extract_handle_from_filename(filename)
+  rlt = nil
+
+  begin
+    rlt = filename.split('/').last.split('-').first
+
+    if rlt.present? && !(rlt[-1].match(/[[:digit:]]/)).present?
+      rlt = rlt[0..-2]
+    end
+  rescue Exception => e
+    logger.error "extract_handle_from_filename: filename[${filename}] - #{e.message}"
+  end
+
+  return rlt
+
 end
 
 #

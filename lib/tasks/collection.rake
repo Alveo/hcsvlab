@@ -101,4 +101,24 @@ namespace :collection do
     exit 0
   end
 
+  #
+  # Check missing speaker data (austalk). Generate CSV for further action.
+  #
+  desc "Check missing speaker data"
+  task :check_speaker_data => [:environment] do
+    file_name = ARGV.last
+
+    puts "Start reading input file '#{file_name}'..."
+
+    if (file_name.nil?) || !File.file?(file_name)
+      puts "Usage: rake collection:check_speaker_data file_name \nFile format: CSV (prefix, university, source path)".red
+      exit 1
+    end
+
+    rlt = check_speaker_data("austalk", file_name)
+
+    puts rlt.green
+    exit 0
+  end
+
 end
