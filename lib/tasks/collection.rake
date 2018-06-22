@@ -121,4 +121,59 @@ namespace :collection do
     exit 0
   end
 
+  #
+  # Generate item handle file (handle per line) from meta-data file (json)
+  #
+  desc "Generate item handle file"
+  task :gen_handle_file => [:environment] do
+    collection_name = ARGV[-2]
+    json_dir = ARGV[-1]
+
+    puts "Start generating item handle file of collection '#{collection_name}', reading json file from '#{json_dir}'..."
+
+    if (collection_name.nil?) || (json_dir.nil?) || !File.directory?(json_dir)
+      puts "Usage: rake collection:gen_handle_file collection_name json_dir".red
+      exit 1
+    end
+
+    rlt = gen_handle_file(collection_name, json_dir)
+
+    puts rlt.green
+    exit 0
+  end
+
+  #
+  # Check item-doc consistency.
+  #
+  # Find all item(s) from DB which contain mis-match document(s).
+  #
+  # e.g.,
+  #
+  # (normal)
+  # item handle: austalk:1_1065_2_16_001
+  # documents: /mnt/volume/austalk/austalk-published/audio/CDUD/1_1065/2/sentences/1_1065_2_16_001-ch1-maptask.wav
+  #
+  # (abnormal)
+  # item handle: austalk:1_1065_2_16_001
+  # /mnt/volume/austalk/austalk-published/audio/CDUD/1_1065/2/sentences/other-handle-ch1-maptask.wav
+  #
+  desc "Check item-doc consistency"
+  task :check_item_doc => [:environment] do
+    collection_name = ARGV[-2]
+    handle_file = ARGV[-1]
+
+    puts "Start processing collection '#{collection_name}', reading handle from '#{handle_file}'..."
+
+    if (collection_name.nil?) || (handle_file.nil?) || !File.file?(handle_file)
+      puts "Usage: rake collection:check_item_doc collection_name handle_file".red
+      exit 1
+    end
+
+    rlt = check_item_doc(collection_name, handle_file)
+
+    puts rlt.green
+    exit 0
+
+  end
+
 end

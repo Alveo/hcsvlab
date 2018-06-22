@@ -359,7 +359,7 @@ end
 def check_speaker_data(collection_name, file)
   rlt = "done"
 
-  out_filename = "doc_not_found.csv"
+  out_filename = File.join(File.dirname(file), "doc_not_found.csv")
   out_file = open("#{out_filename}", 'w')
   out_file << "university,source file path,item handle,document file path\n"
 
@@ -372,7 +372,7 @@ def check_speaker_data(collection_name, file)
     univ = csv_line['University']
     folder = csv_line['Source Path']
 
-    files = Dir.glob("#{folder}/**/*").select{|f| File.file? f}
+    files = Dir.glob("#{folder}/**/*").select {|f| File.file? f}
     files.each do |f|
 
       item_handle = "#{collection_name}:" + extract_handle_from_filename(f)
@@ -429,10 +429,173 @@ def check_speaker_data(collection_name, file)
   end_time = Time.now
   duration = (end_time - start_time) / 1.second
 
-  rlt = "Task finished at #{end_time} and last #{duration} seconds. Total processed file(s): #{ok_file_count+not_found_count}, found [#{not_found_count}] file(s) not in DB.documents. Out file: #{out_filename}"
+  rlt = "Task finished at #{end_time} and last #{duration} seconds. Total processed file(s): #{ok_file_count + not_found_count}, found [#{not_found_count}] file(s) not in DB.documents. Out file: #{out_filename}"
 
   return rlt
 
+end
+
+#
+# Check item-doc consistency.
+#
+# Find all item(s) from DB which contain mis-match document(s).
+#
+# e.g.,
+#
+# (normal)
+# item handle: austalk:1_1065_2_16_001
+# documents: /mnt/volume/austalk/austalk-published/audio/CDUD/1_1065/2/sentences/1_1065_2_16_001-ch1-maptask.wav
+#
+# (abnormal)
+# item handle: austalk:1_1065_2_16_001
+# /mnt/volume/austalk/austalk-published/audio/CDUD/1_1065/2/sentences/other-handle-ch1-maptask.wav
+#
+# Input:
+# - collection_name: collection name
+# - handle_file(CSV): json file,handle,other?
+#
+# * if file_path nil, check whole collection
+#
+# Output:
+# file - check result
+# - handle,N/A: no such item in DB
+# - handle,non-doc: item exists, but no related document in DB
+# - handle,document name: item and document exist, but not match
+#
+def check_item_doc(collection_name, handle_file)
+  rlt = "done"
+
+  out_filename = File.join("/tmp", "#{collection_name}.err_handle.csv")
+  out_file = open("#{out_filename}", 'w')
+
+  total_handle = 0
+  err_handle = 0
+  start_time = Time.now
+
+  total_line = %x{wc -l #{handle_file}}.split.first.to_i
+
+  File.readlines(handle_file).each_with_index do |line, i|
+    json_file = line.chop!.split(',').first
+    handle = "#{collection_name}:#{line.split(',')[1]}"
+
+    # check whether item exists
+    sql = %(
+      select handle from items where handle='#{handle}';
+    )
+
+    result = ActiveRecord::Base.connection.execute(sql)
+    if result.count > 0
+      #   good, item exists
+      # further check item-doc
+
+      sql = %(
+        select i.handle, d.file_name
+        from collections c, items i, documents d
+        where
+          c.name='#{collection_name}'
+          and i.collection_id=c.id
+          and i.id=d.item_id
+          and i.handle='#{handle}';
+      )
+
+      result = ActiveRecord::Base.connection.execute(sql)
+      if result.count > 0
+        # check first record is good enough
+        doc_file_name = result.as_json.first['file_name']
+        if !doc_file_name.start_with?(handle.split(':').last)
+          #   sorry, not match
+          out_file << "#{json_file},#{handle},#{doc_file_name}\n"
+          err_handle += 1
+        end
+      else
+        #   no related doc exists
+        out_file << "#{json_file},#{handle},non-doc\n"
+        err_handle += 1
+      end
+    else
+      # item not exist in DB
+      out_file << "#{json_file},#{handle},N/A\n"
+      err_handle += 1
+    end
+
+    total_handle += 1
+
+    progress = ((i + 1) * 1.0 / total_line) * 100
+    printf "#{i + 1}/#{total_line} - processing #{handle} ... (%2.2f%%)\r", progress
+  end
+
+  out_file.close
+
+  end_time = Time.now
+  duration = (end_time - start_time) / 1.second
+
+  rlt = "Task finished at #{end_time} and last #{duration} seconds. Total processed handle(s): #{total_handle}, total error handle(s): #{err_handle}. Out file: #{out_filename}"
+
+  return rlt
+end
+
+#
+# Generate item handle file (handle per line) from meta-data file (json)
+#
+def gen_handle_file(collection_name, json_dir)
+  rlt = "done"
+
+  out_filename = File.join("/tmp", "#{collection_name}.handle.out")
+  out_file = open("#{out_filename}", 'w')
+
+  start_time = Time.now
+
+  # recursively process all json file
+  file_count = 0;
+  handle_count = 0;
+  Dir.glob("#{json_dir}/**/*.json").each do |json_file|
+    handles = collect_handle_from_json(json_file)
+    out_file.puts(handles)
+
+    file_count += 1
+    handle_count += handles.size
+  end
+
+  out_file.close
+
+  end_time = Time.now
+  duration = (end_time - start_time) / 1.second
+
+  rlt = "Task finished at #{end_time} and last #{duration} seconds. Total processed file(s): #{file_count}, total handle(s): #{handle_count}. Out file: #{out_filename}"
+
+  return rlt
+end
+
+#
+# Collection handle from json
+#
+# JSONPath: $.items[*].alveo:metadata.dcterms:identifier
+#
+# Ref:
+# - http://jsonpath.com/
+# - http://goessner.net/articles/JsonPath/index.html
+#
+# Return: string array of item handle
+#
+def collect_handle_from_json(json_file)
+  logger.debug "collect_handle_from_json: start - json_file[#{json_file}]"
+  rlt = []
+
+  begin
+    json = JSON.parse(File.open(json_file).read.encode('utf-8'))
+
+    json['items'].each {|item|
+      if !item['alveo:metadata']['dcterms:identifier'].nil? && !item['alveo:metadata']['dcterms:identifier'].empty?
+        rlt << "#{json_file},#{item['alveo:metadata']['dcterms:identifier']}"
+      end
+    }
+  rescue Exception => e
+    logger.error "collect_handle_from_json: #{e.message}"
+  end
+
+  logger.debug "collect_handle_from_json: end - rlt.size[#{rlt.size}]"
+
+  return rlt
 end
 
 #

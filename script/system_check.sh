@@ -187,7 +187,7 @@ fi
 echo ""
 echo "Checking RabbitMQ..."
 
-rmq_port=5672
+rmq_port=5673
 
 rmq_cmd=`netstat -an | grep $rmq_port | wc -l`
 
@@ -200,7 +200,5 @@ else
 fi
 
 # End
-echo ""
+echo "-----"
 echo "Done."
-
-#exit $RET_STATUS
