@@ -54,7 +54,7 @@
         - text = "Upload Zip:"
       = label_tag :file_text, text
       %label.btn.btn-primary{:for => "my-file-selector"}
-        %input#my-file-selector{:onchange => "$('#upload-file-info').html(this.files[0].name)", :style => "display:none", :type => "file", :accept => "application/zip"}/
+        %input#my-file-selector{:onchange => "$('#upload-file-info').html(this.files[0].name)", :style => "display:none", :name => "file", :type => "file", :accept => "application/zip"}/
         Select Zip File
       %span#upload-file-info.label.label-info
 

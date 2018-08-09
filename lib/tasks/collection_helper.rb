@@ -2,6 +2,7 @@ require 'find'
 require "#{Rails.root}/lib/rdf-sesame/hcsvlab_server.rb"
 require "#{Rails.root}/app/helpers/metadata_helper"
 require 'csv'
+require 'rest_client'
 
 APP_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/hcsvlab-web_config.yml")[Rails.env] unless defined? APP_CONFIG
 SESAME_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/sesame.yml")[Rails.env] unless defined? SESAME_CONFIG
@@ -10,6 +11,8 @@ SESAME_SERVER = RDF::Sesame::HcsvlabServer.new(SESAME_CONFIG["url"].to_s)
 METADATA_DIR = {
   "austalk" => "/mnt/volume/austalk/austalk-published/metadata"
 }
+
+VT_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env] unless defined? VT_CONFIG
 
 #
 # Check collection integrity
@@ -1461,4 +1464,98 @@ def mime_type_lookup(file_name)
     else
       return 'application/octet-stream'
   end
+end
+
+#
+# Export collection documents according to pattern into zip file
+#
+# return: {:code => int, :message => string}
+# - rlt[:code]: 0 if success, otherwise failure
+# - rlt[:message]: nil if success, otherwise error message
+def export_collection_doc(collection_name, zip_file, pattern)
+  logger.debug "export_collection_doc: start - collection_name[#{collection_name}], pattern[#{pattern}], zip_file[#{zip_file}]"
+
+  rlt = {:code => 1, :message => "unknown error"}
+
+  default_pattern = "-plain\.txt$"
+  if pattern.nil?
+    pattern = default_pattern
+  end
+
+  # verify collection
+  collection = Collection.find_by_name(collection_name)
+  if !collection.present?
+    rlt[:message] = "collection '#{collection_name}' not found"
+  else
+    # collect document file path according to pattern
+    begin
+      sql = %(
+        select d.file_path from collections c, items i, documents d
+        where
+          c.name='#{collection_name}'
+          and i.collection_id=c.id
+          and d.item_id=i.id
+          and d.file_name ~ E'#{pattern}'
+          ;
+      )
+      result = ActiveRecord::Base.connection.execute(sql)
+
+      if result.count > 0
+        file_path_ar = result.map {|e| e["file_path"]}
+
+        # ensure no duplicated zip
+        File.delete(zip_file) if File.exists?(zip_file)
+
+        # zip it
+        ZipBuilder.build_simple_zip_from_files(zip_file, file_path_ar)
+
+        rlt[:code] = 0
+        rlt[:message] = nil
+
+      else
+        #     no doc found according to current pattern
+        rlt[:message] = "no document found according to pattern '#{pattern}'"
+      end
+    rescue Exception => e
+      rlt[:message] = e.message
+    end
+  end
+
+  logger.debug "export_collection_doc: end - rlt[#{rlt}]"
+
+  return rlt
+
+end
+
+#
+# Import collection document to voyant-tools
+#
+# Return:
+# - rlt[:code]: 0 - success, 1 - failure
+# - rlt[:message]: Voyant-Tools url if success, otherwise json response from voyant-tools
+#
+def import_vt(collection_name, file)
+  logger.debug "import_vt: start - collection_name[#{collection_name}], file[#{file}]"
+  rlt = {:code => 1, :message => "unknown error"}
+
+  upload_url = VT_CONFIG["upload_url"]
+
+  resp = RestClient.post(
+    upload_url,
+    :tool => 'corpus.CorpusCreator',
+    :upload => File.open(file, 'r')
+  )
+
+  resp_json = JSON.parse(resp.body)
+
+  if resp.code == 200 && resp_json['stepEnabledCorpusCreator']['storedId'].present?
+    rlt[:code] = 0
+    rlt[:message] = VT_CONFIG["url"] + resp_json['stepEnabledCorpusCreator']['storedId']
+  else
+    rlt[:message] = resp_json
+  end
+
+  logger.debug "import_vt: rlt[#{rlt}]"
+
+  return rlt
 end

@@ -4,7 +4,7 @@ class UserRegistersController < Devise::RegistrationsController
   before_filter :authenticate_user!, except: [:create, :new]
 
   def index
-    respond_with download_details
+    # respond_with download_details
   end
 
   def edit

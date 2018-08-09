@@ -623,6 +623,7 @@ DEPENDENCIES
   rdf-sesame!
   rdf-turtle
   request_exception_handler
+  rest-client
   rsolr
   rspec-json_expectations (~> 2.0.0)
   rspec-rails (= 2.14.2)
@@ -658,4 +659,4 @@ RUBY VERSION
    ruby 2.1.4p265
 
 BUNDLED WITH
-   1.14.6
+   1.16.1

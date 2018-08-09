@@ -11,6 +11,7 @@ require 'fileutils'
 class CollectionsController < ApplicationController
 
   STOMP_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/broker.yml")[Rails.env] unless defined? STOMP_CONFIG
+  VT_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env] unless defined? VT_CONFIG
 
   # Don't bother updating _sign_in_at fields for every API request
   prepend_before_filter :skip_trackable # , only: [:add_items_to_collection, :add_document_to_item]
@@ -373,8 +374,15 @@ class CollectionsController < ApplicationController
   #
   def add_document_to_item
     begin
-      collection = validate_collection(params[:collectionId], params[:api_key])
+      collection = validate_collection_exists(Collection.sanitise_name(params[:collectionId]))
+      contribution = validate_contribution(current_user, collection, params[:contribution_id])
+      if contribution.nil?
+        # contribution is nil, just add document to item rather than adding contribution doc
+        collection = validate_collection(params[:collectionId], params[:api_key])
+      end
+
       item = validate_item_exists(collection, params[:itemId])
+
       doc_metadata = parse_str_to_json(params[:metadata], 'JSON document metadata is ill-formatted')
 
       # performance issue: if upload large file, this debug log matters
@@ -385,6 +393,12 @@ class CollectionsController < ApplicationController
       uploaded_file = uploaded_file.first if uploaded_file.is_a? Array
       doc_filename = MetadataHelper.get_dc_identifier(doc_metadata) # the document filename is the document id
       doc_metadata = format_and_validate_add_document_request(collection.corpus_dir, collection, item, doc_metadata, doc_filename, doc_content, uploaded_file)
+
+      if !contribution.nil?
+        #   need to add conbribution mapping
+        doc_metadata["alveo:Contribution"] = contribution.id
+      end
+
       @success_message = CollectionsHelper.add_document_core(collection, item, doc_metadata, doc_filename)
     rescue ResponseError => e
       respond_with_error(e.message, e.response_code)
@@ -759,6 +773,22 @@ class CollectionsController < ApplicationController
 
     return
 
+  end
+
+  def analyse_collection
+    logger.debug "analyse_collection: start - collection[#{params[:id]}]"
+    collection_name = params[:id]
+
+    # check corpus id from vt config
+    corpus_id = VT_CONFIG[collection_name]
+
+    if corpus_id.nil?
+      # need to generate id from vt
+      # TODO: collect pattern from input
+      CollectionsHelper.gen_vt_link(collection_name)
+      flash[:notice] = "Collection text analysis is processing, please check back minutes later."
+      redirect_to collections_path and return
+    end
   end
 
   # ---------------------------
@@ -1539,5 +1569,21 @@ class CollectionsController < ApplicationController
   def approved_collection_owners
     (User.approved_data_owners + User.approved_superusers).map {|o| ["#{o.full_name} (#{o.email})", "#{o.id}"]}.sort!.to_h
   end
+
+  # def analyse_collection
+  #   logger.debug "analyse_collection: start - collection[#{params[:id]}]"
+  #   collection_name = params[:id]
+  #
+  #   # check corpus id from vt config
+  #   corpus_id = VT_CONFIG[collection_name]
+  #
+  #   if corpus_id.nil?
+  #     # need to generate id from vt
+  #     CollectionsHelper.gen_vt_link(collection_name)
+  #     flash[:notice] = "Collection text analysis is processing, please check back minutes later."
+  #     redirect_to collections_path and return
+  #   end
+  # end
+
 
 end

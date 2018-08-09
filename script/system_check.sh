@@ -18,6 +18,9 @@ ACTIVEMQ_USER="admin:admin"
 WEB_URL="http://localhost:3000/version.json"
 JAVA_PORT_NUMBER=8983
 
+SESAME_URL="http://localhost:8080"
+SOLR_URL="http://localhost:8080"
+
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
@@ -29,6 +32,22 @@ then
   JAVA_PORT_NUMBER=8080
 fi
 
+if [ ! -z "$RAILS_ENV" -a "$RAILS_ENV" == "staging" ]
+then
+  WEB_URL="https://localhost/version.json"
+  JAVA_PORT_NUMBER=8080
+  SESAME_URL="http://10.0.0.26:8080"
+  SOLR_URL="http://10.0.0.20:8080"
+fi
+
+if [ ! -z "$RAILS_ENV" -a "$RAILS_ENV" == "nci" ]
+then
+  WEB_URL="https://localhost/version.json"
+  JAVA_PORT_NUMBER=8080
+  SESAME_URL="http://10.0.0.11:8080"
+  SOLR_URL="http://10.0.0.7:8080"
+fi
+
 JAVA_URL="http://localhost:${JAVA_PORT_NUMBER}/"
 
 echo ""
@@ -38,6 +57,8 @@ echo `date`
 echo "Rails env= $RAILS_ENV"
 echo "Java Container url= $JAVA_URL"
 echo "Web App url= $WEB_URL"
+echo "Sesame url= $SESAME_URL"
+echo "Solr url= $SOLR_URL"
 echo "Attempt restart= $REVIVE"
 
 # Disk space
@@ -93,6 +114,7 @@ if [ $RET_STATUS -eq 1 ] && [ "$REVIVE" == true ]
 then
   echo "Reviving ActiveMQ..."
   pkill -9 -f activemq
+  rm ${ACTIVEMQ_HOME}/data/kahadb/lock
   cd $ACTIVEMQ_HOME && nohup bin/activemq start > nohup_activemq.out 2>&1
   sleep 30
 fi
@@ -100,15 +122,13 @@ fi
 # Servlet Container - Jetty or Tomcat
 
 echo ""
-echo "Checking the Java Container..."
-
-sesame_url="http://10.0.0.11:8080"
+echo "Checking the Sesame & Solr..."
 
 let count=0
 while [ $count -lt 15 -a "$java_status" == "" ]
 do
   sleep 2
-  sesame_status=`curl -I ${sesame_url}/openrdf-sesame/home/overview.view 2>/dev/null  | head -1 | awk '{print $2}' `
+  sesame_status=`curl -I ${SESAME_URL}/openrdf-sesame/home/overview.view 2>/dev/null  | head -1 | awk '{print $2}' `
   let count=count+1
 done
 
@@ -122,8 +142,7 @@ else
 fi
 
 # Solr
-solr_url="http://10.0.0.7:8080"
-solr_status=`curl -I ${solr_url}/solr/admin/ping 2>/dev/null  | head -1 | awk '{print $2}' `
+solr_status=`curl -I ${SOLR_URL}/solr/admin/ping 2>/dev/null  | head -1 | awk '{print $2}' `
 
 if [ "$solr_status" == "200" -o "$solr_status" == "302" ]
 then

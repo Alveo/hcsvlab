@@ -3,6 +3,8 @@ require Rails.root.join('lib/tasks/fedora_helper.rb')
 
 module CollectionsHelper
 
+  VT_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env] unless defined? VT_CONFIG
+
   # To check whether user is the owner of specific collection
   def self.is_owner(user, collection)
     logger.debug "is_owner: start - user[#{user}], collection[#{collection}]"
@@ -308,6 +310,42 @@ module CollectionsHelper
   def self.draft_collection_by_user(user)
     # Collection.joins(:user_licence_requests).where("user_licence_requests.request_id = collections.id and user_licence_requests.request_type='draft_collection_read' and user_licence_requests.user_id = '#{user.id}'")
     Collection.joins("INNER JOIN user_licence_requests ON user_licence_requests.request_id::int8 = collections.id AND user_licence_requests.request_type = 'draft_collection_read' AND user_licence_requests.user_id = '#{user.id}'")
+  end
+
+  #
+  # Get corpus id from VT config.
+  #
+  # Return:
+  # nil - no corpus registered
+  # "processing" - VT is processing, catch up later
+  # corpus id - string
+  #
+  def self.vt_corpusid(collection_name)
+    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env]
+    corpus_id = config[collection_name]
+  end
+
+  def self.vt_link(collection_name)
+    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env]
+    vt_link = config[collection_name]
+  end
+
+  #
+  # Generate Voyant-Tools link for collection
+  #
+  # 1. export collection document to zip file
+  # 2. import zip file to Voyant-Tools server
+  # 3. write corpus id to voyant_tools.yml
+  #
+  def self.gen_vt_link(collection_name, pattern='')
+    logger.debug "gen_vt_link: start - collection[#{collection_name}], pattern[#{pattern}]"
+
+    pid = spawn("#{Rails.root}/script/vt.sh #{collection_name} #{pattern}")
+    Process.detach(pid)
+
+    logger.debug "gen_vt_link: pid=#{pid}"
+
+    logger.debug "gen_vt_link: end"
   end
 
 end

@@ -59,7 +59,7 @@ class SpeakersController < ApplicationController
           speaker_id = SpeakersHelper.create_speaker(collection_name, json)
           speaker_uri = request.original_url + "/" + speaker_id
           render json: {success: {
-            id: "success",
+            id: speaker_id,
             message: "speaker created",
             URI: "#{speaker_uri}"
           }}, status: 201, location: speaker_uri
@@ -146,7 +146,7 @@ class SpeakersController < ApplicationController
           speaker_uri = request.original_url
 
           render json: {success: {
-            id: "success",
+            id: speaker_id,
             message: "speaker updated",
             URI: "#{speaker_uri}"
           }}, status: 200, location: speaker_uri
@@ -188,7 +188,7 @@ class SpeakersController < ApplicationController
 
         # always return success unless exception
         render json: {success: {
-          id: "success",
+          id: speaker_id,
           message: "speaker [#{speaker_id}] deleted"
         }}, status: 200
       rescue Exception => e

@@ -1,0 +1,15 @@
+---
+development:
+  url: http://localhost/?corpus=
+  upload_url: http://localhost/trombone
+  vt_1: http://localhost/?corpus=85becd0a8618b6bfe4c79cb0745ab3aa
+  vt_2: http://localhost/?corpus=ae8bbfd48687950ec6d7a807c95a4724
+test:
+  url: http://localhost:8888/?corpus=
+  upload_url: http://localhost:8888/trombone
+staging:
+  url: http://localhost:8888/?corpus=
+  upload_url: http://localhost:8888/trombone
+nci:
+  url: http://localhost:8888/?corpus=
+  upload_url: http://localhost:8888/trombone

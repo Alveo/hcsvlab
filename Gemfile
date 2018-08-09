@@ -166,3 +166,6 @@ gem 'zipline'
 gem "activerecord-import", ">= 0.2.0"
 
 gem 'exception_notification'
+
+#rest client for http post
+gem 'rest-client'

@@ -64,7 +64,6 @@ module ItemsHelper
   # end
 
   # Writes the collection manifest as JSON and the metadata as .n3 RDF
-  # TODO: collection_enhancement
   def create_metadata_and_manifest(collection_name, collection_rdf, collection_manifest={"collection_name" => collection_name, "files" => {}})
 
     corpus_dir = File.join(Rails.application.config.api_collections_location, collection_name)
@@ -85,13 +84,11 @@ module ItemsHelper
 
   # Creates a combined metadata.rdf file and returns the path of that file.
   # The file name takes the form of 'item1-item2-itemN-metadata.rdf'
-  # TODO: collection_enhancement
   def create_combined_item_rdf(corpus_dir, item_names, item_rdf)
     create_item_rdf(corpus_dir, item_names.join("-"), item_rdf)
   end
 
   # creates an item-metadata.rdf file and returns the path of that file
-  # TODO: collection_enhancement
   def create_item_rdf(corpus_dir, item_name, item_rdf)
     filename = File.join(corpus_dir, item_name + '-metadata.rdf')
     create_file(filename, item_rdf)
@@ -114,7 +111,6 @@ module ItemsHelper
   end
 
   # Uploads a document given as json content
-  # TODO: collection_enhancement
   def upload_document_using_json(corpus_dir, file_basename, json_content)
     absolute_filename = File.join(corpus_dir, file_basename)
     Rails.logger.debug("Writing uploaded document contents to new file #{absolute_filename}")
@@ -123,7 +119,6 @@ module ItemsHelper
   end
 
   # Uploads a document given as a http multipart uploaded file or responds with an error if appropriate
-  # TODO: collection_enhancement
   def upload_document_using_multipart(corpus_dir, file_basename, file, collection_name)
     absolute_filename = File.join(corpus_dir, file_basename)
     if !file.is_a? ActionDispatch::Http::UploadedFile
@@ -153,7 +148,6 @@ module ItemsHelper
 
   # Processes the metadata for each item in the supplied request parameters
   # Returns a hash containing :successes and :failures of processed items
-  # TODO: collection_enhancement
   def process_items(collection_name, corpus_dir, request_params, uploaded_files=[])
     items = []
     failures = []
@@ -182,7 +176,6 @@ module ItemsHelper
   end
 
   # Uploads any documents in the item metadata and returns a copy of the item metadata with its metadata graph updated
-  # TODO: collection_enhancement
   def process_item_documents_and_update_graph(corpus_dir, item_metadata)
     unless item_metadata["documents"].nil?
       item_metadata["documents"].each do |document|
@@ -271,7 +264,6 @@ module ItemsHelper
   end
 
   # Processes files uploaded as part of a multipart request
-  # TODO: collection_enhancement
   def process_uploaded_files(corpus_dir, collection_name, files)
     uploaded_files = []
     files.each do |uploaded_file|
@@ -395,7 +387,6 @@ module ItemsHelper
   end
 
   # Removes the metadata and document files for an item
-  # TODO: collection_enhancement
   def delete_item_from_filesystem(item)
     item_name = item.get_name
     delete_file(File.join(item.collection.corpus_dir, "#{item_name}-metadata.rdf"))
@@ -593,7 +584,6 @@ module ItemsHelper
   end
 
   # Performs add document validations and returns the formatted metadata with the automatically generated metadata fields
-  # TODO: collection_enhancement
   def format_and_validate_add_document_request(corpus_dir, collection, item, doc_metadata, doc_filename, doc_content, uploaded_file)
     validate_add_document_request(corpus_dir, collection, doc_metadata, doc_filename, doc_content, uploaded_file)
     doc_metadata = format_add_document_metadata(corpus_dir, collection, item, doc_metadata, doc_filename, doc_content, uploaded_file)
@@ -603,7 +593,6 @@ module ItemsHelper
   end
 
   # Format the add document metadata and add doc to file system
-  # TODO: collection_enhancement
   def format_add_document_metadata(corpus_dir, collection, item, document_metadata, document_filename, document_content, uploaded_file)
     # Update the document @id to the Alveo catalog URI
     document_metadata = update_jsonld_document_id(document_metadata, collection.name, item.get_name)

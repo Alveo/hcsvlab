@@ -818,6 +818,7 @@ module ContributionsHelper
       contrib.save!
 
       # retrieve contribution id to compose uri
+      collection_uri = UrlGenerator.new.collection_url(contrib.collection.name)
       uri = UrlGenerator.new.contrib_show_url(contrib.id)
 
       # compose query
@@ -830,6 +831,7 @@ module ContributionsHelper
       # INSERT DATA {
       #   <http://localhost:3000/contrib/9> a alveo:Contribution;
       #   dcterms:identifier "9";
+      #   dcterms:isPartOf "https://app.alveo.edu.au/catalog/austalk";
       #   dcterms:title "19Oct.1";
       #   dcterms:creator "Data Owner";
       #   dcterms:created "2017-10-18 23:35:08 UTC";
@@ -843,6 +845,7 @@ module ContributionsHelper
         INSERT DATA {
           <#{uri}> a alveo:Contribution;
           dcterms:identifier "#{MetadataHelper.sqarql_well_formed(contrib.id)}";
+          dcterms:isPartOf "#{collection_uri}";
           dcterms:title "#{MetadataHelper.sqarql_well_formed(contrib.name)}";
           dcterms:creator "#{MetadataHelper.sqarql_well_formed(contrib.owner.full_name)}";
           dcterms:created "#{MetadataHelper.sqarql_well_formed(contrib.created_at)}";

@@ -58,6 +58,43 @@ module RequestValidator
     item
   end
 
+  # Validate specific contribution if contribution id provided:
+  #
+  # 1. exists
+  # 2. associated with specific collection
+  # 3. contribution owner
+  def validate_contribution(user, collection, contrib_id)
+    logger.debug "validate_contribution: start - user[#{user}], collection[#{collection}], contrib_id[#{contrib_id}]"
+    rlt = nil
+
+    if !contrib_id.nil?
+      contrib = Contribution.find_by_id(contrib_id)
+      if contrib.nil?
+        msg = "validate_contribution: Requested contribution (id: #{contrib_id}) not found"
+        logger.warn msg
+        raise ResponseError.new(404), msg
+      else
+        if contrib.collection_id != collection.id
+          msg = "Contribution '#{contrib.name}' not associated to collection '#{collection.name}'"
+          logger.warn msg
+          raise ResponseError.new(403), msg
+        end
+
+        if user.id != contrib.owner_id
+          msg = "User '#{user.email}' not authorised to add document to contribution '#{contrib.name}'"
+          logger.warn msg
+          raise ResponseError.new(403), msg
+        end
+
+        rlt = contrib
+      end
+    end
+
+    logger.debug "validate_contribution: end - rlt[#{rlt}]"
+
+    return rlt
+  end
+
   def validate_document_exists (item, document_name)
     document = item.documents.find_by_file_name(document_name)
     raise ResponseError.new(404), "Requested document not found" if document.nil?

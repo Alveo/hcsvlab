@@ -98,14 +98,7 @@ class ItemListsController < ApplicationController
         download_as_zip(@item_list.get_item_handles, "#{@item_list.name}.zip", doc_filter, file_structure)
 
       }
-      # format.warc {
-      #   if @item_list.get_item_handles.length == 0
-      #     flash[:error] = "No items in the item list you are trying to download"
-      #     redirect_to @item_list and return
-      #   end
-      #
-      #   download_as_warc(@item_list.get_item_handles, "#{@item_list.name}.warc")
-      # }
+
     end
   end
 

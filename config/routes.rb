@@ -44,6 +44,8 @@ HcsvlabWeb::Application.routes.draw do
   delete 'catalog-delete/:id', :to => 'collections#delete_collection', :as => 'delete_collection'
   get 'catalog-create', :to => 'collections#web_create_collection', :as => 'web_create_collection'
   post 'catalog-create', :to => 'collections#web_create_collection'
+  # KL: create text analysis link
+  get 'analyse-collection/:id', :to => 'collections#analyse_collection', :as => 'analyse_collection'
   
   resources :imports
 
@@ -122,7 +124,7 @@ HcsvlabWeb::Application.routes.draw do
     get "/users/sign_in", :to => "devise/sessions#oauth2_new", :as => 'oauth2_sign_in'
 
     get "/users/aaf_sign_in", :to => "devise/sessions#aaf_new"
-    get "/account/", :to => "user_registers#index"
+    get "/account", :to => "user_registers#index"
     get "/account/edit", :to => "user_registers#edit"
     get "/account/edit_password", :to => "user_registers#edit_password" #allow users to edit their own password
     put "/account/update_password", :to => "user_registers#update_password" #allow users to update their own password

@@ -2,6 +2,8 @@ require File.dirname(__FILE__) + '/collection_helper.rb'
 
 namespace :collection do
 
+  APP_CONFIG = YAML.load_file("#{Rails.root.to_s}/config/hcsvlab-web_config.yml")[Rails.env] unless defined? APP_CONFIG
+
   #
   # Change the owner of a single collection
   #
@@ -174,6 +176,95 @@ namespace :collection do
     puts rlt.green
     exit 0
 
+  end
+
+  #
+  # Export collection documents as zip.
+  #
+  # Usage
+  #
+  #
+  desc "Export collection documents as zip"
+  task :export_collection_doc => [:environment] do
+    collection_name = ARGV[1]
+    zip_file = ARGV[2]
+    reg_pattern = ARGV[3]
+
+    puts "Start processing: export document from collection [#{collection_name}] to zip file [#{zip_file}] according to pattern [#{reg_pattern}] (default pattern: '-plain\.txt')..."
+
+    if (collection_name.nil?) || (zip_file.nil?)
+      puts "Usage: rake collection:export_collection_doc collection_name zip_file pattern".red
+      exit 1
+    end
+
+    rlt = export_collection_doc(collection_name, zip_file, reg_pattern)
+
+    if rlt[:code] == 0
+      puts "done.".green
+    else
+      puts rlt[:message].red
+    end
+
+    exit rlt[:code]
+  end
+
+  desc "Import collection to Voyant-Tools"
+  task :import_vt => [:environment] do
+    collection_name = ARGV[1]
+    file = ARGV[2]
+
+    puts "Start processing: import document from collection [#{collection_name}] to Voyant-Tools thru file [#{file}]"
+
+    if (collection_name.nil?) || (file.nil?)
+      puts "Usage: rake collection:import_vt collection_name file ".red
+      exit 1
+    end
+
+    rlt = import_vt(collection_name, file)
+
+    if rlt[:code] == 0
+      puts "done.".green
+    else
+      puts rlt[:message].red
+    end
+
+    exit rlt[:code]
+  end
+
+  desc "Export document and import to Voyant-Tools in one go"
+  task :vt_go => [:environment] do
+    collection_name = ARGV[1]
+    pattern = ARGV[2]
+
+    puts "Start processing: export document from collection '#{collection_name}' and import to Voyant-Tools according to pattern '#{pattern}'"
+
+    if (collection_name.nil?)
+      puts "Usage: rake collection:vt_go collection_name pattern (default pattern: '-plain\.txt')".red
+      exit 1
+    end
+
+    zip_file = File.join(APP_CONFIG['download_tmp_dir'], "#{collection_name}.vt.zip")
+
+    # mark processing
+    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")
+    config[Rails.env][collection_name] = 'n/a'
+    File.open("#{Rails.root.to_s}/config/voyant_tools.yml", 'w') {|f| f.write config.to_yaml }
+
+    rlt = export_collection_doc(collection_name, zip_file, pattern)
+    rlt = import_vt(collection_name, zip_file)
+
+    if rlt[:code] == 0
+      # write back corpus id to vt config
+      config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")
+      config[Rails.env][collection_name] = rlt[:message]
+      File.open("#{Rails.root.to_s}/config/voyant_tools.yml", 'w') {|f| f.write config.to_yaml }
+
+      puts "#{rlt[:message]}".green
+    else
+      puts rlt[:message].red
+    end
+
+    exit rlt[:code]
   end
 
 end

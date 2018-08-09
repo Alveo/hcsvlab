@@ -121,6 +121,7 @@ class ContributionsController < ApplicationController
 
       @contribution_metadata = {
         :title => @contribution.name,
+        :collection => collection_url(@contribution.collection.name),
         :creator => @contribution.owner.full_name,
         :created => @contribution.created_at,
         :abstract => metadata["dcterms:abstract"].to_json
@@ -195,9 +196,13 @@ class ContributionsController < ApplicationController
 
     if !zip_file.nil?
       # cp file to contrib dir (overwrite) for later use
+      logger.debug "import: zip_file[#{zip_file.inspect}]"
       contrib_zip_file = ContributionsHelper.contribution_import_zip_file(contrib)
       FileUtils.mkdir_p(ContributionsHelper.contribution_dir(contrib))
       FileUtils.cp(zip_file.tempfile, contrib_zip_file)
+    else
+      #   no uploaded file found
+      logger.warn "import: no uploaded file found!"
     end
 
     is_preview = params[:preview]
@@ -407,7 +412,6 @@ class ContributionsController < ApplicationController
       raise ResponseError.new(400), "Required field '#{value}' is missing" if request_params[key].blank?
     end
   end
-
 
 
 end
