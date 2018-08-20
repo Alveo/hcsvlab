@@ -947,5 +947,22 @@ module ContributionsHelper
 
   end
 
+  # check whether specific user has access right to specific contribution
+  #
+  # At this stage, contribution is accessible to all registered user
+  def self.accessible(user, contrib_id)
+    logger.debug "accessible: start - user[#{user}], contrib_id[#{contrib_id}]"
+    rlt = false
+
+    contrib = Contribution.find_by_id(contrib_id)
+
+    if user.present? && contrib.present?
+      rlt = true
+    end
+
+    logger.debug "accessible: end - rlt[#{rlt}]"
+    return rlt
+  end
+
 end
 

@@ -1,6 +1,7 @@
 require 'find'
 require "#{Rails.root}/lib/rdf-sesame/hcsvlab_server.rb"
 require "#{Rails.root}/app/helpers/metadata_helper"
+require "#{Rails.root}/app/helpers/collections_helper"
 require 'csv'
 require 'rest_client'
 
@@ -1477,11 +1478,6 @@ def export_collection_doc(collection_name, zip_file, pattern)
 
   rlt = {:code => 1, :message => "unknown error"}
 
-  default_pattern = "-plain\.txt$"
-  if pattern.nil?
-    pattern = default_pattern
-  end
-
   # verify collection
   collection = Collection.find_by_name(collection_name)
   if !collection.present?
@@ -1489,20 +1485,9 @@ def export_collection_doc(collection_name, zip_file, pattern)
   else
     # collect document file path according to pattern
     begin
-      sql = %(
-        select d.file_path from collections c, items i, documents d
-        where
-          c.name='#{collection_name}'
-          and i.collection_id=c.id
-          and d.item_id=i.id
-          and d.file_name ~ E'#{pattern}'
-          ;
-      )
-      result = ActiveRecord::Base.connection.execute(sql)
+      file_path_ar = CollectionsHelper.filter_doc(collection_name, pattern, false)
 
-      if result.count > 0
-        file_path_ar = result.map {|e| e["file_path"]}
-
+      if file_path_ar.count > 0
         # ensure no duplicated zip
         File.delete(zip_file) if File.exists?(zip_file)
 
@@ -1511,7 +1496,6 @@ def export_collection_doc(collection_name, zip_file, pattern)
 
         rlt[:code] = 0
         rlt[:message] = nil
-
       else
         #     no doc found according to current pattern
         rlt[:message] = "no document found according to pattern '#{pattern}'"

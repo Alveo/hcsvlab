@@ -313,24 +313,6 @@ module CollectionsHelper
   end
 
   #
-  # Get corpus id from VT config.
-  #
-  # Return:
-  # nil - no corpus registered
-  # "processing" - VT is processing, catch up later
-  # corpus id - string
-  #
-  def self.vt_corpusid(collection_name)
-    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env]
-    corpus_id = config[collection_name]
-  end
-
-  def self.vt_link(collection_name)
-    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")[Rails.env]
-    vt_link = config[collection_name]
-  end
-
-  #
   # Generate Voyant-Tools link for collection
   #
   # 1. export collection document to zip file
@@ -343,9 +325,60 @@ module CollectionsHelper
     pid = spawn("#{Rails.root}/script/vt.sh #{collection_name} #{pattern}")
     Process.detach(pid)
 
-    logger.debug "gen_vt_link: pid=#{pid}"
+    logger.debug "gen_vt_link: end - pid=#{pid}"
+  end
 
-    logger.debug "gen_vt_link: end"
+  #
+  # Return doc filename according to collection and pattern
+  #
+  def self.filter_doc(collection_name, pattern, basename=true)
+    logger.debug "filter_doc: start - collection[#{collection_name}], pattern[#{pattern}], basename[#{basename}]"
+
+    rlt = []
+
+    default_pattern = "plain\.txt"
+    if !pattern.present?
+      pattern = default_pattern
+    end
+
+    # verify collection
+    collection = Collection.find_by_name(collection_name)
+    if !collection.present?
+      msg = "collection '#{collection_name}' not found"
+      logger.debug "filter_doc: #{msg}"
+    else
+      # collect document file path according to pattern
+      begin
+        sql = %(
+        select d.file_path from collections c, items i, documents d
+        where
+          c.name='#{collection_name}'
+          and i.collection_id=c.id
+          and d.item_id=i.id
+          and d.file_name ~ E'#{pattern}'
+          ;
+      )
+        result = ActiveRecord::Base.connection.execute(sql)
+
+        if result.count > 0
+          if basename
+            rlt = result.map {|e| File.basename(e["file_path"])}
+          else
+            rlt = result.map {|e| e["file_path"]}
+          end
+        else
+          #     no doc found according to current pattern
+          msg = "no document found according to pattern '#{pattern}'"
+          logger.debug "filter_doc: #{msg}"
+        end
+      rescue Exception => e
+        logger.error "filter_doc: #{e.message}"
+      end
+    end
+
+    logger.debug "filter_doc: end - rlt[#{rlt}]"
+
+    return rlt
   end
 
 end

@@ -45,8 +45,15 @@ HcsvlabWeb::Application.routes.draw do
   get 'catalog-create', :to => 'collections#web_create_collection', :as => 'web_create_collection'
   post 'catalog-create', :to => 'collections#web_create_collection'
   # KL: create text analysis link
-  get 'analyse-collection/:id', :to => 'collections#analyse_collection', :as => 'analyse_collection'
-  
+  post 'analyse-collection/:id', :to => 'collections#analyse_collection', :as => 'analyse_collection'
+
+  resources :collections
+  scope :ujs, defaults: {format: :ujs} do
+    # export collection text file preview (ajax)
+    get 'preview-doc-filter/:id', :to => 'collections#preview_doc_filter', :as => 'preview_doc_filter'
+  end
+
+
   resources :imports
 
   # collection attachment

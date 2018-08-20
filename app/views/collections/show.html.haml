@@ -47,16 +47,20 @@
                 %button.btn{:disabled => "disabled", :type => "button"} Delete Collection
 
             - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
-              - case CollectionsHelper.vt_corpusid(@collection.name)
+              - case @collection.vt_url
               - when nil
-                = link_to "Start analyse", analyse_collection_path, id: 'analyse_collection', :class => "btn btn-primary"
+                -#= link_to "Start analyse", analyse_collection_path, id: 'analyse_collection', :class => "btn btn-primary"
+                %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
+
               - when "n/a"
                 %button.btn{:disabled => "disabled", :type => "button"} Text analysis processing...
+              - when @collection.vt_url.start_with?("error")
+                %button.btn{:disabled => "disabled", :type => "button"} Text analysis can't proceed...
               - else
-                = link_to "Text Analysis", CollectionsHelper.vt_link(@collection.name), id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
+                = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
             - else
-              - if CollectionsHelper.vt_corpusid(@collection.name).present?
-                = link_to "Text Analysis", CollectionsHelper.vt_link(@collection.name), id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
+              - if @collection.vt_url.present? && @collection.vt_url.start_with?("http")
+                = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
 
 
 
@@ -92,3 +96,30 @@
         = @collection.html_text.html_safe
 
 = render 'shared/nectar_attribution'
+
+#previewModal.modal.hide.fade{"aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1"}
+  = form_tag({controller: 'collections', action: 'analyse_collection'}, method: 'post', :id => 'proceed_analyse_collection_form') do |f|
+    .modal-header
+      %button.close{"aria-hidden" => "true", "data-dismiss" => "modal", :type => "button"} ×
+      %h3#myModalLabel #{@collection.name}: select text files to be analysed
+    .modal-body
+      %p
+        %label Select only files that match a particular regular expression ("plain\.txt" would be used if blank)
+        = text_field_tag :doc_filter, nil, :placeholder => "e.g. plain\\.txt"
+      #preview-result
+        You can see the preview result here.
+    .modal-footer
+      %button.btn{"aria-hidden" => "true", "data-dismiss" => "modal"} Close
+      = link_to 'Preview', preview_doc_filter_path(@collection.name), remote: true, :class => "btn btn-warning", :id => "preview_link"
+      = submit_tag 'Proceed analyse', :class => "btn btn-primary", :id => 'proceed_btn'
+
+:javascript
+  $("#preview_link").click(function() {
+    $(this).attr("href", "/preview-doc-filter/#{@collection.name}?p=" + encodeURIComponent($("#doc_filter").val()));
+  });
+
+
+
+
+
+

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20171207032545) do
+ActiveRecord::Schema.define(:version => 20180815051158) do
 
   create_table "attachments", :force => true do |t|
     t.string   "file"
@@ -63,6 +63,7 @@ ActiveRecord::Schema.define(:version => 20171207032545) do
     t.datetime "created_at",                                 :null => false
     t.datetime "updated_at",                                 :null => false
     t.string   "status",             :default => "RELEASED"
+    t.string   "vt_url"
   end
 
   create_table "contribution_mappings", :force => true do |t|

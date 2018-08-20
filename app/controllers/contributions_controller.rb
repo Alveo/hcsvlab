@@ -7,16 +7,10 @@ class ContributionsController < ApplicationController
 
   # GET "contrib/"
   def index
-    @contributions = contributions_by_name
+    @own_contributions = own_contributions
+    @shared_contributions = shared_contributions
 
     begin
-      @contributions.each do |contrib|
-        # replace description with abstract for display purpose
-        # contrib.description = MetadataHelper::load_metadata_from_contribution(contrib.name)[:abstract]
-        metadata = ContributionsHelper.load_contribution_metadata(contrib.name)
-        contrib.description = metadata["dcterms:abstract"]
-      end
-
       respond_to do |format|
         format.html
         format.json
@@ -399,9 +393,53 @@ class ContributionsController < ApplicationController
 
   end
 
-  # List all contributions by name
-  def contributions_by_name
-    Contribution.order(:name)
+  # user's own contributions
+  def own_contributions
+    rlt = []
+    if current_user.present?
+      rlt = Contribution.where(:owner_id => current_user.id).order(:name)
+    end
+
+    rlt.each do |contrib|
+      # replace description with abstract for display purpose
+      # contrib.description = MetadataHelper::load_metadata_from_contribution(contrib.name)[:abstract]
+      metadata = ContributionsHelper.load_contribution_metadata(contrib.name)
+      contrib.description = metadata["dcterms:abstract"]
+    end
+
+    return rlt
+  end
+
+  # other user's contributions
+  def shared_contributions
+    rlt = []
+    tmp = []
+
+    if current_user.present?
+      tmp = Contribution.where("owner_id <> #{current_user.id}").order(:name)
+    else
+      tmp = Contribution.order(:name)
+    end
+
+    tmp.each do |contrib|
+      # replace description with abstract for display purpose
+      # contrib.description = MetadataHelper::load_metadata_from_contribution(contrib.name)[:abstract]
+      metadata = ContributionsHelper.load_contribution_metadata(contrib.name)
+      contrib.description = metadata["dcterms:abstract"]
+
+      hash = {}
+      hash[:id] = contrib.id
+      hash[:name] = contrib.name
+      hash[:owner] = "#{contrib.owner.full_name}(#{contrib.owner.email})"
+      hash[:collection_name] = contrib.collection.name
+      hash[:url] = contrib_show_url(contrib.id)
+      hash[:description] = contrib.description
+      hash[:accessible] = ContributionsHelper.accessible(current_user, contrib.id)
+
+      rlt << hash
+    end
+
+    return rlt
   end
 
   #

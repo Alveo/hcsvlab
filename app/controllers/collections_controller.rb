@@ -74,7 +74,7 @@ class CollectionsController < ApplicationController
         # Need login to proceed.
         msg = "Please log in to access collection '#{params[:id]}'"
         logger.info "show: #{msg}"
-        authorization_error(Exception.new(msg))
+        authorization_error(Exception.new(msg), oauth2_sign_in_url)
         return
       when 20
         #   Need draft access permission to proceed.
@@ -776,19 +776,43 @@ class CollectionsController < ApplicationController
   end
 
   def analyse_collection
-    logger.debug "analyse_collection: start - collection[#{params[:id]}]"
+    logger.debug "analyse_collection: start - collection[#{params[:id]}], doc_filter[#{params[:doc_filter]}]"
     collection_name = params[:id]
 
-    # check corpus id from vt config
-    corpus_id = VT_CONFIG[collection_name]
+    collection = Collection.find_by_name(collection_name)
+    if collection.nil?
+      msg = "Collection does not exist with the given id: #{params[:id]}"
+      logger.info "proceed_analyse_collection: #{msg}"
+      resource_not_found(Exception.new(msg))
+      return
+    end
 
-    if corpus_id.nil?
-      # need to generate id from vt
-      # TODO: collect pattern from input
-      CollectionsHelper.gen_vt_link(collection_name)
+    logger.debug "analyse_collection: vt_url[#{collection.vt_url}]"
+
+    if collection.vt_url.nil?
+      # need to generate vt_url
+      CollectionsHelper.gen_vt_link(collection_name, params[:doc_filter])
       flash[:notice] = "Collection text analysis is processing, please check back minutes later."
       redirect_to collections_path and return
     end
+  end
+
+  def preview_doc_filter
+    logger.debug "preview_doc_filter: start - collection[#{params[:id]}], filter[#{params[:p]}]"
+
+    rlt = '<ul>'
+    doc_ar = CollectionsHelper.filter_doc(params[:id], params[:p])
+    doc_ar.each do |file|
+      rlt += "<li>#{file}</li>"
+    end
+
+    rlt += '</ul>'
+
+    logger.debug "preview_doc_filter: rlt[#{rlt}]"
+
+    # rlt = '<font color="red">This is some text!red</font>'
+
+    render js: "$('#preview-result').html('#{rlt}')"
   end
 
   # ---------------------------
@@ -1569,21 +1593,5 @@ class CollectionsController < ApplicationController
   def approved_collection_owners
     (User.approved_data_owners + User.approved_superusers).map {|o| ["#{o.full_name} (#{o.email})", "#{o.id}"]}.sort!.to_h
   end
-
-  # def analyse_collection
-  #   logger.debug "analyse_collection: start - collection[#{params[:id]}]"
-  #   collection_name = params[:id]
-  #
-  #   # check corpus id from vt config
-  #   corpus_id = VT_CONFIG[collection_name]
-  #
-  #   if corpus_id.nil?
-  #     # need to generate id from vt
-  #     CollectionsHelper.gen_vt_link(collection_name)
-  #     flash[:notice] = "Collection text analysis is processing, please check back minutes later."
-  #     redirect_to collections_path and return
-  #   end
-  # end
-
 
 end

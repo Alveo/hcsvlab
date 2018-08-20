@@ -243,25 +243,36 @@ namespace :collection do
       exit 1
     end
 
+    collection = Collection.find_by_name(collection_name)
+    if collection.nil?
+      puts "collection '#{collection_name}' not found.".red
+      exit 1
+    end
+
     zip_file = File.join(APP_CONFIG['download_tmp_dir'], "#{collection_name}.vt.zip")
 
     # mark processing
-    config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")
-    config[Rails.env][collection_name] = 'n/a'
-    File.open("#{Rails.root.to_s}/config/voyant_tools.yml", 'w') {|f| f.write config.to_yaml }
+    collection.vt_url = "n/a"
+    collection.save
 
     rlt = export_collection_doc(collection_name, zip_file, pattern)
-    rlt = import_vt(collection_name, zip_file)
-
     if rlt[:code] == 0
-      # write back corpus id to vt config
-      config = YAML.load_file("#{Rails.root.to_s}/config/voyant_tools.yml")
-      config[Rails.env][collection_name] = rlt[:message]
-      File.open("#{Rails.root.to_s}/config/voyant_tools.yml", 'w') {|f| f.write config.to_yaml }
+      #   export zip file success
+      #  proceed import
+      rlt = import_vt(collection_name, zip_file)
 
-      puts "#{rlt[:message]}".green
+
+      if rlt[:code] == 0
+        puts rlt[:message].green
+        collection.vt_url = rlt[:message]
+      else
+        puts rlt[:message].red
+        collection.vt_url = "error"
+      end
+
+      collection.save
     else
-      puts rlt[:message].red
+      puts "export files to zip failed: #{rlt[:message]}".red
     end
 
     exit rlt[:code]
