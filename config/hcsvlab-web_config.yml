@@ -10,6 +10,8 @@ defaults: &defaults
   contrib_dir: /data/contrib
   # tmp file expired time - hours
   download_expired_time: 24
+  # voyant server switch on/off
+  voyant_server: off
 
 development:
   <<: *defaults

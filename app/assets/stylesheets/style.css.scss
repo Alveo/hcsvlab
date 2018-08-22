@@ -534,6 +534,11 @@ margin: 0 auto;
 .dropdown-menu li > a {
   white-space: normal;
 }
+.dropdown-menu > .disabled > a,
+.dropdown-menu > .disabled > a:hover,
+.dropdown-menu > .disabled > a:focus {
+  color: greenyellow;
+}
 
 .well { margin-bottom: 20px; }
 
@@ -975,7 +980,7 @@ left: 0;
 right: 0;
 margin: 0;
 display: none;
-background: white;
+background-color: #aba28b;
 border: 1px solid #cccccc;
 -webkit-border-radius: 4px;
 -moz-border-radius: 4px;

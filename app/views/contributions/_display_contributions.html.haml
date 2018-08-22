@@ -1,9 +1,11 @@
-- if current_user.present? && @own_contributions.length == 0
-  %li
-    %h5 Empty
+
+- if current_user.present?
+  %h2 My Contributions
+  - if @own_contributions.length == 0
+    %li
+      %h5 Empty
 
 - unless @own_contributions.length == 0
-  %h2 Owned Contribution
   %table.table.table-hover
     %thead
       %tr
@@ -19,19 +21,20 @@
             %a{:href => "#{collection_path(contrib.collection.name)}"} #{contrib.collection.name}
           %td #{contrib.description}
 
-- if @shared_contributions.length == 0
-  %li
-    %h5 Empty
+
+- if current_user.present?
+  %h2 Shared Contributions
+  - if @shared_contributions.length == 0
+    %li
+      %h5 Empty
 
 - unless @shared_contributions.length == 0
-  %h2 Shared Contribution
   %table.table.table-hover
     %thead
       %tr
         %th Contribution
         %th Associated Collection
         %th Owner
-        %th Accessible
         %th Abstract
     %tbody
       - @shared_contributions.each do |contrib|
@@ -41,5 +44,4 @@
           %td
             %a{:href => "#{collection_path(contrib[:collection_name])}"} #{contrib[:collection_name]}
           %td #{contrib[:owner]}
-          %td #{contrib[:accessible]}
           %td #{contrib[:description]}

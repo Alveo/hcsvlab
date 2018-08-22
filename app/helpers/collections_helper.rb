@@ -328,6 +328,11 @@ module CollectionsHelper
     logger.debug "gen_vt_link: end - pid=#{pid}"
   end
 
+  def self.is_voyant_server_on?
+    logger.debug "voyant server is #{APP_CONFIG['voyant_server']}."
+    return (APP_CONFIG["voyant_server"] == true)
+  end
+
   #
   # Return doc filename according to collection and pattern
   #
@@ -336,10 +341,12 @@ module CollectionsHelper
 
     rlt = []
 
-    default_pattern = "plain\.txt"
+    default_pattern = "%-plain.txt"
     if !pattern.present?
       pattern = default_pattern
     end
+
+    pattern.gsub! "*", "%"
 
     # verify collection
     collection = Collection.find_by_name(collection_name)
@@ -355,7 +362,7 @@ module CollectionsHelper
           c.name='#{collection_name}'
           and i.collection_id=c.id
           and d.item_id=i.id
-          and d.file_name ~ E'#{pattern}'
+          and d.file_name like '#{pattern}'
           ;
       )
         result = ActiveRecord::Base.connection.execute(sql)

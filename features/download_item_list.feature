@@ -39,7 +39,7 @@ Feature: Managing Item Lists
     And I should see "Download only files of a particular type"
     And I should see "txt"
     And I should see "Download Selected"
-    And I should see "Download only files that match a particular regular expression"
+    And I should see "Download only files that match a particular GLOB pattern"
     And I should see "Download Matches"
 
   Scenario: Downloading more than 200 documents results in an error

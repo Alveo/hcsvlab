@@ -1,5 +1,5 @@
 - if target.errors.any?
-  %h3.error_header The record could not be saved
+  %h3.error_header Oops! We have encountered an issue which is somewhat embarrassing...
   %p.notification{:id => "*.errors"}
     - target.errors.full_messages.each do |msg|
       = msg

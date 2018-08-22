@@ -188,16 +188,16 @@ namespace :collection do
   task :export_collection_doc => [:environment] do
     collection_name = ARGV[1]
     zip_file = ARGV[2]
-    reg_pattern = ARGV[3]
+    pattern = ARGV[3]
 
-    puts "Start processing: export document from collection [#{collection_name}] to zip file [#{zip_file}] according to pattern [#{reg_pattern}] (default pattern: '-plain\.txt')..."
+    puts "Start processing: export document from collection [#{collection_name}] to zip file [#{zip_file}] according to GLOB pattern [#{pattern}] (default pattern: '*-plain.txt')..."
 
     if (collection_name.nil?) || (zip_file.nil?)
       puts "Usage: rake collection:export_collection_doc collection_name zip_file pattern".red
       exit 1
     end
 
-    rlt = export_collection_doc(collection_name, zip_file, reg_pattern)
+    rlt = export_collection_doc(collection_name, zip_file, pattern)
 
     if rlt[:code] == 0
       puts "done.".green
@@ -236,10 +236,10 @@ namespace :collection do
     collection_name = ARGV[1]
     pattern = ARGV[2]
 
-    puts "Start processing: export document from collection '#{collection_name}' and import to Voyant-Tools according to pattern '#{pattern}'"
+    puts "Start processing: export document from collection '#{collection_name}' and import to Voyant-Tools according to GLOB pattern '#{pattern}'"
 
     if (collection_name.nil?)
-      puts "Usage: rake collection:vt_go collection_name pattern (default pattern: '-plain\.txt')".red
+      puts "Usage: rake collection:vt_go collection_name pattern (default pattern: '*-plain.txt')".red
       exit 1
     end
 

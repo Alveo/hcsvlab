@@ -49,7 +49,6 @@
             - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
               - case @collection.vt_url
               - when nil
-                -#= link_to "Start analyse", analyse_collection_path, id: 'analyse_collection', :class => "btn btn-primary"
                 %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
 
               - when "n/a"
@@ -57,10 +56,12 @@
               - when @collection.vt_url.start_with?("error")
                 %button.btn{:disabled => "disabled", :type => "button"} Text analysis can't proceed...
               - else
-                = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
+                - if CollectionsHelper.is_voyant_server_on?
+                  = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
             - else
-              - if @collection.vt_url.present? && @collection.vt_url.start_with?("http")
-                = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
+              - if CollectionsHelper.is_voyant_server_on?
+                - if @collection.vt_url.present? && @collection.vt_url.start_with?("http")
+                  = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
 
 
 
@@ -104,8 +105,8 @@
       %h3#myModalLabel #{@collection.name}: select text files to be analysed
     .modal-body
       %p
-        %label Select only files that match a particular regular expression ("plain\.txt" would be used if blank)
-        = text_field_tag :doc_filter, nil, :placeholder => "e.g. plain\\.txt"
+        %label Select only files that match a GLOB pattern (wildcard pathname matching, "*-plain.txt" would be used if blank)
+        = text_field_tag :doc_filter, nil, :placeholder => "e.g. *-plain.txt"
       #preview-result
         You can see the preview result here.
     .modal-footer

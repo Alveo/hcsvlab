@@ -1,4 +1,6 @@
 ---
+# APP_CONFIG /config/hcsvlab-web_config.yml
+# voyant_server: on/off
 development:
   upload_url: http://localhost/voyant/trombone
   url: http://localhost/voyant/?corpus=
