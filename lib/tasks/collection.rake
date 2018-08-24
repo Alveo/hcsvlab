@@ -188,7 +188,7 @@ namespace :collection do
   task :export_collection_doc => [:environment] do
     collection_name = ARGV[1]
     zip_file = ARGV[2]
-    pattern = ARGV[3]
+    pattern = ARGV[3].dup
 
     puts "Start processing: export document from collection [#{collection_name}] to zip file [#{zip_file}] according to GLOB pattern [#{pattern}] (default pattern: '*-plain.txt')..."
 
@@ -197,7 +197,7 @@ namespace :collection do
       exit 1
     end
 
-    rlt = export_collection_doc(collection_name, zip_file, pattern)
+    rlt = CollectionsHelper.export_collection_doc(collection_name, zip_file, pattern)
 
     if rlt[:code] == 0
       puts "done.".green
@@ -220,7 +220,7 @@ namespace :collection do
       exit 1
     end
 
-    rlt = import_vt(collection_name, file)
+    rlt = CollectionsHelper.import_vt(collection_name, file)
 
     if rlt[:code] == 0
       puts "done.".green
@@ -234,7 +234,7 @@ namespace :collection do
   desc "Export document and import to Voyant-Tools in one go"
   task :vt_go => [:environment] do
     collection_name = ARGV[1]
-    pattern = ARGV[2]
+    pattern = ARGV[2].dup
 
     puts "Start processing: export document from collection '#{collection_name}' and import to Voyant-Tools according to GLOB pattern '#{pattern}'"
 
@@ -255,11 +255,11 @@ namespace :collection do
     collection.vt_url = "n/a"
     collection.save
 
-    rlt = export_collection_doc(collection_name, zip_file, pattern)
+    rlt = CollectionsHelper.export_collection_doc(collection_name, zip_file, pattern)
     if rlt[:code] == 0
       #   export zip file success
       #  proceed import
-      rlt = import_vt(collection_name, zip_file)
+      rlt = CollectionsHelper.import_vt(collection_name, zip_file)
 
 
       if rlt[:code] == 0

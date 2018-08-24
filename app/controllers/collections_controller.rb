@@ -792,8 +792,9 @@ class CollectionsController < ApplicationController
     if collection.vt_url.nil?
       # need to generate vt_url
       CollectionsHelper.gen_vt_link(collection_name, params[:doc_filter])
-      flash[:notice] = "Collection text analysis is processing, please check back minutes later."
-      redirect_to collections_path and return
+
+      flash[:notice] = "Collection text analysis finished."
+      redirect_to collection_path(collection_name) and return
     end
   end
 

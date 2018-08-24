@@ -322,11 +322,119 @@ module CollectionsHelper
   def self.gen_vt_link(collection_name, pattern='')
     logger.debug "gen_vt_link: start - collection[#{collection_name}], pattern[#{pattern}]"
 
-    pid = spawn("#{Rails.root}/script/vt.sh #{collection_name} #{pattern}")
-    Process.detach(pid)
+    collection = Collection.find_by_name(collection_name)
+    if collection.nil?
+      raise ResponseError.new(404), "A collection with the name '#{collection_name}' not exist."
+    end
 
-    logger.debug "gen_vt_link: end - pid=#{pid}"
+    zip_file = File.join(APP_CONFIG['download_tmp_dir'], "#{collection_name}.vt.zip")
+
+    # mark processing
+    collection.vt_url = "n/a"
+    collection.save
+
+    rlt = export_collection_doc(collection_name, zip_file, pattern)
+    if rlt[:code] == 0
+      #   export zip file success
+      #  proceed import
+      rlt = import_vt(collection_name, zip_file)
+
+      msg = ''
+      if rlt[:code] == 0
+        msg = rlt[:message]
+        collection.vt_url = rlt[:message]
+      else
+        msg = rlt[:message]
+        collection.vt_url = "error"
+      end
+
+      logger.debug "gen_vt_link: vt_url=#{msg}"
+
+      collection.save
+    else
+      logger.error "export files to zip failed: #{rlt[:message]}"
+    end
+
+    logger.debug "gen_vt_link: end"
   end
+
+  #
+  # Import collection document to voyant-tools
+  #
+  # Return:
+  # - rlt[:code]: 0 - success, 1 - failure
+  # - rlt[:message]: Voyant-Tools url if success, otherwise json response from voyant-tools
+  #
+  def self.import_vt(collection_name, file)
+    logger.debug "import_vt: start - collection_name[#{collection_name}], file[#{file}]"
+    rlt = {:code => 1, :message => "unknown error"}
+
+    upload_url = VT_CONFIG["upload_url"]
+
+    resp = RestClient.post(
+      upload_url,
+      :tool => 'corpus.CorpusCreator',
+      :upload => File.open(file, 'r')
+    )
+
+    resp_json = JSON.parse(resp.body)
+
+    if resp.code == 200 && resp_json['stepEnabledCorpusCreator']['storedId'].present?
+      rlt[:code] = 0
+      rlt[:message] = VT_CONFIG["url"] + resp_json['stepEnabledCorpusCreator']['storedId']
+    else
+      rlt[:message] = resp_json
+    end
+
+    logger.debug "import_vt: rlt[#{rlt}]"
+
+    return rlt
+  end
+
+  #
+  # Export collection documents according to pattern into zip file
+  #
+  # return: {:code => int, :message => string}
+  # - rlt[:code]: 0 if success, otherwise failure
+  # - rlt[:message]: nil if success, otherwise error message
+  def self.export_collection_doc(collection_name, zip_file, pattern)
+    logger.debug "export_collection_doc: start - collection_name[#{collection_name}], pattern[#{pattern}], zip_file[#{zip_file}]"
+
+    rlt = {:code => 1, :message => "unknown error"}
+
+    # verify collection
+    collection = Collection.find_by_name(collection_name)
+    if !collection.present?
+      rlt[:message] = "collection '#{collection_name}' not found"
+    else
+      # collect document file path according to pattern
+      begin
+        file_path_ar = CollectionsHelper.filter_doc(collection_name, pattern, false)
+
+        if file_path_ar.count > 0
+          # ensure no duplicated zip
+          File.delete(zip_file) if File.exists?(zip_file)
+
+          # zip it
+          ZipBuilder.build_simple_zip_from_files(zip_file, file_path_ar)
+
+          rlt[:code] = 0
+          rlt[:message] = nil
+        else
+          #     no doc found according to current pattern
+          rlt[:message] = "no document found according to pattern '#{pattern}'"
+        end
+      rescue Exception => e
+        rlt[:message] = e.message
+      end
+    end
+
+    logger.debug "export_collection_doc: end - rlt[#{rlt}]"
+
+    return rlt
+
+  end
+
 
   def self.is_voyant_server_on?
     logger.debug "voyant server is #{APP_CONFIG['voyant_server']}."
