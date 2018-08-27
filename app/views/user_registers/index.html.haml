@@ -2,5 +2,6 @@
 = render 'account_menu'
 .span9
   %h2 Manage account details
+  #{current_user.full_name()} (#{current_user.email})
   -# = render 'display_licence_collections'
 = render 'shared/nectar_attribution'

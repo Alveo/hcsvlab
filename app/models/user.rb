@@ -333,7 +333,8 @@ class User < ActiveRecord::Base
       result << get_collection_list_licence_info(list) if can_see_collection_list(list)
     end
 
-    Collection.all.each do |coll|
+    # not show DRAFT collections
+    Collection.where("status != 'DRAFT'").each do |coll|
       result << get_collection_licence_info(coll) if can_see_collection(coll) && coll.collection_list.nil?
     end
 

@@ -6,6 +6,10 @@
   - else
     = link_to "Account", new_user_session_path, :class => "dropdown-toggle"
   %ul.util-links-other.dropdown-menu
+    - if current_user
+      %li.disabled
+        %a{:href => "#"}= current_user.full_name()
+    %li.divider
     - if has_user_authentication_provider? and current_user
       %li= link_to t('blacklight.header_links.saved_searches'), saved_searches_path
       %li= link_to t('blacklight.header_links.search_history'), search_history_path
