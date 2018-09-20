@@ -46,20 +46,21 @@
               - else
                 %button.btn{:disabled => "disabled", :type => "button"} Delete Collection
 
-            - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
-              - case @collection.vt_url
-              - when nil
-                %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
+            - if CollectionsHelper.is_voyant_server_on?
+              - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
+                - case @collection.vt_url
+                - when nil
+                  %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
 
-              - when "n/a"
-                %button.btn{:disabled => "disabled", :type => "button"} Text analysis processing...
-              - when @collection.vt_url.start_with?("error")
-                %button.btn{:disabled => "disabled", :type => "button"} Text analysis can't proceed...
-              - else
-                - if CollectionsHelper.is_voyant_server_on?
+                - when "n/a"
+                  %button.btn{:disabled => "disabled", :type => "button"} Text analysis processing...
+
+                - when @collection.vt_url.start_with?("error")
+                  %button.btn{:disabled => "disabled", :type => "button"} Text analysis can't proceed...
+
+                - else
                   = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
-            - else
-              - if CollectionsHelper.is_voyant_server_on?
+              - else
                 - if @collection.vt_url.present? && @collection.vt_url.start_with?("http")
                   = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
 

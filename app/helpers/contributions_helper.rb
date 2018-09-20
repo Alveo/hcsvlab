@@ -507,6 +507,12 @@ module ContributionsHelper
 
     mappings.each do |mp|
       doc = Document.find_by_id(mp.document_id)
+      item = Item.find_by_id(mp.item_id)
+      if !doc.present? || !item.present?
+        logger.info "load_contribution_mappings: contribution_id[#{contribution.id}], doc[#{mp.document_id}] or item[#{mp.item_id}] not present, so skip"
+        next
+      end
+
       hash = {
         :mp_id => mp.id,
         :item_name => Item.find_by_id(mp.item_id).get_name,

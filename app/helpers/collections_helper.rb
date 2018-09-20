@@ -379,6 +379,8 @@ module CollectionsHelper
 
     resp_json = JSON.parse(resp.body)
 
+    logger.debug "import_vt: response from voyant server[#{resp_json}]"
+
     if resp.code == 200 && resp_json['stepEnabledCorpusCreator']['storedId'].present?
       rlt[:code] = 0
       rlt[:message] = VT_CONFIG["url"] + resp_json['stepEnabledCorpusCreator']['storedId']
