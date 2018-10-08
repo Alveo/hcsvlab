@@ -255,7 +255,7 @@ class CollectionsController < ApplicationController
       @olac_subject_options = MetadataHelper::OLAC_LINGUISTIC_SUBJECT_HASH
 
       @additional_metadata = {}
-      @additional_metadata_options = metadata_names_mapping
+      @additional_metadata_options = CollectionsHelper.metadata_names_mapping
 
       @collection_creator = current_user.full_name + "(#{current_user.email})"
       @collection_alveo_owner = current_user
@@ -287,7 +287,7 @@ class CollectionsController < ApplicationController
         end
 
         # Validate and sanitise additional metadata fields
-        additional_metadata = validate_collection_additional_metadata(params)
+        additional_metadata = CollectionsHelper.validate_collection_additional_metadata(params)
 
         # retrieve valid licence
         lic = licence(@licence_id)
@@ -600,7 +600,7 @@ class CollectionsController < ApplicationController
     # additional metadata
     # OK, all basic metadata gone, so only additional metadata left
     @additional_metadata = properties
-    @additional_metadata_options = metadata_names_mapping
+    @additional_metadata_options = CollectionsHelper.metadata_names_mapping
 
     #   attachment url
     @attachment = Attachment.new({collection_id: @collection.id})
@@ -627,7 +627,8 @@ class CollectionsController < ApplicationController
       # logger.debug "olac_metadata=#{olac_metadata}"
 
       # Validate and sanitise additional metadata fields
-      additional_metadata = validate_collection_additional_metadata(params)
+      additional_metadata = CollectionsHelper.validate_collection_additional_metadata(params)
+
       logger.debug "update_collection: additional_metadata=#{additional_metadata}"
 
       # Construct collection Json-ld
@@ -1445,41 +1446,6 @@ class CollectionsController < ApplicationController
   end
 
   #
-  # Returns a validated hash of the collection additional metadata params
-  #
-  def validate_collection_additional_metadata(params)
-    if params.has_key?(:additional_key) && params.has_key?(:additional_value)
-      protected_collection_fields = [
-        'dc:identifier',
-        'dcterms:identifier',
-        MetadataHelper::IDENTIFIER.to_s,
-        'dc:title',
-        'dcterms:title',
-        MetadataHelper::TITLE.to_s,
-        'dc:abstract',
-        'dcterms:abstract',
-        MetadataHelper::ABSTRACT.to_s]
-
-      validate_additional_metadata(params[:additional_key].zip(params[:additional_value]), protected_collection_fields)
-    else
-      {}
-    end
-  end
-
-  #
-  # Returns a validated hash of the item additional metadata params
-  #
-  def validate_item_additional_metadata(params)
-    if params.has_key?(:additional_key) && params.has_key?(:additional_value)
-      protected_item_fields = ['dc:identifier', 'dcterms:identifier', MetadataHelper::IDENTIFIER.to_s,
-                               'dc:isPartOf', 'dcterms:isPartOf', MetadataHelper::IS_PART_OF.to_s]
-      validate_additional_metadata(params[:additional_key].zip(params[:additional_value]), protected_item_fields)
-    else
-      {}
-    end
-  end
-
-  #
   # Returns a validated hash of the document additional metadata params
   #
   def validate_document_additional_metadata(params)
@@ -1487,49 +1453,16 @@ class CollectionsController < ApplicationController
       protected_item_fields = ['dc:identifier', 'dcterms:identifier', MetadataHelper::IDENTIFIER.to_s,
                                'dc:source', 'dcterms:source', MetadataHelper::SOURCE,
                                'olac:language', MetadataHelper::LANGUAGE.to_s]
-      validate_additional_metadata(params[:additional_key].zip(params[:additional_value]), protected_item_fields)
+
+      CollectionsHelper.validate_additional_metadata(params[:additional_key].zip(params[:additional_value]), protected_item_fields)
     else
       {}
     end
   end
 
-  #
-  # Validates and sanitises a set of additional metadata provided by ingest web forms
-  # Expects a zipped array of additional metadata keys and values, returns a hash of sanitised metadata
-  #
-  def validate_additional_metadata(additional_metadata, protected_field_keys, metadata_type = "additional")
-    default_protected_fields = ['@id', '@type', '@context',
-                                'dc:identifier', 'dcterms:identifier', MetadataHelper::IDENTIFIER.to_s]
-    metadata_protected_fields = default_protected_fields | protected_field_keys
-    additional_metadata.delete_if {|key, value| key.blank? && value.blank?}
-    metadata_hash = {}
-    additional_metadata.each do |key, value|
-      meta_key = key.delete(' ')
-      meta_value = value.strip
-      raise ResponseError.new(400), "An #{metadata_type} metadata field is missing a name" if meta_key.blank?
-      raise ResponseError.new(400), "An #{metadata_type} metadata field '#{meta_key}' is missing a value" if meta_value.blank?
-
-      unless metadata_protected_fields.include?(meta_key)
-        # handle multi value
-        if metadata_hash.key?(meta_key)
-          #   key already exists
-          v = metadata_hash[meta_key]
-          if v.is_a? (Array)
-            metadata_hash[meta_key] = (v << meta_value)
-          else
-            metadata_hash[meta_key] = (Array.new([v]) << meta_value)
-          end
-        else
-          metadata_hash[meta_key] = meta_value
-        end
-      end
-    end
-    metadata_hash
-  end
-
   # Validates OLAC metadata
   def validate_collection_olac_metadata(params)
-    validate_additional_metadata(params[:collection_olac_name].zip(params[:collection_olac_value]), [], "OLAC")
+    CollectionsHelper.validate_additional_metadata(params[:collection_olac_name].zip(params[:collection_olac_value]), [], "OLAC")
   end
 
   #
@@ -1569,21 +1502,21 @@ class CollectionsController < ApplicationController
   #
   # Retrieve RDF name mapping
   #
-  def metadata_names_mapping
-    rlt = {}
-
-    exclude_name = ['rdf:type']
-
-    mappings = MetadataHelper::searchable_fields
-    mappings.each do |m|
-      unless exclude_name.include?(m.rdf_name)
-        # rlt[m.rdf_name] = m.user_friendly_name.nil? ? m.rdf_name : m.user_friendly_name
-        rlt[m.rdf_name] = m.rdf_name
-      end
-    end
-
-    rlt
-  end
+  # def metadata_names_mapping
+  #   rlt = {}
+  #
+  #   exclude_name = ['rdf:type']
+  #
+  #   mappings = MetadataHelper::searchable_fields
+  #   mappings.each do |m|
+  #     unless exclude_name.include?(m.rdf_name)
+  #       # rlt[m.rdf_name] = m.user_friendly_name.nil? ? m.rdf_name : m.user_friendly_name
+  #       rlt[m.rdf_name] = m.rdf_name
+  #     end
+  #   end
+  #
+  #   rlt
+  # end
 
   def skip_trackable
     request.env['devise.skip_trackable'] = true

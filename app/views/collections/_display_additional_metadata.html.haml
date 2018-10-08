@@ -1,40 +1,39 @@
-%h3 Additional Metadata
-See the RDF Names of #{link_to 'searchable fields', catalog_searchable_fields_path, target: :_blank} for examples of accepted metadata field names.(e.g., ausnc:comment)
-%br
-Note: If the context for a field you want to enter is not available in the
-#{link_to 'default schema', annotation_context_path, target: :_blank} then you must provide the full URI for that metadata field.
+.row-fluid
+  %h3 Additional Metadata
+  See the RDF Names of #{link_to 'searchable fields', catalog_searchable_fields_path, target: :_blank} for examples of accepted metadata field names.(e.g., ausnc:comment)
+  %br
+  Note: If the context for a field you want to enter is not available in the
+  #{link_to 'default schema', annotation_context_path, target: :_blank} then you must provide the full URI for that metadata field.
 
-%hr
+  - if @additional_metadata_options.nil? || @additional_metadata_options.size == 0
+    - @additional_metadata_options = {"" => ""}
 
-- if @additional_metadata_options.nil? || @additional_metadata_options.size == 0
-  - @additional_metadata_options = {"" => ""}
+  - md_select = select_tag("additional_key[]").delete("\n")
+  - md_data = '['
+  - @additional_metadata_options.each do |k, v|
+    - md_data += "{id:'#{k}', text:'#{v}'},"
+  - md_data = md_data.chomp(',') + ']'
 
-- md_select = select_tag("additional_key[]").delete("\n")
-- md_data = '['
-- @additional_metadata_options.each do |k, v|
-  - md_data += "{id:'#{k}', text:'#{v}'},"
-- md_data = md_data.chomp(',') + ']'
-
-- batch_add = ''
-- @additional_metadata.each do |md_key, md_value|
-  - unless md_key.blank? && md_value.blank?
-    - if md_value.is_a? (Array)
-      - md_value.each do |v|
-        - batch_add += "add_metadata_field('#{CGI::escapeHTML(md_key)}', '#{CGI::escapeHTML(v)}');"
-    - else
-      - batch_add += "add_metadata_field('#{CGI::escapeHTML(md_key)}', '#{CGI::escapeHTML(md_value)}');"
+  - batch_add = ''
+  - @additional_metadata.each do |md_key, md_value|
+    - unless md_key.blank? && md_value.blank?
+      - if md_value.is_a? (Array)
+        - md_value.each do |v|
+          - batch_add += "add_metadata_field('#{CGI::escapeHTML(md_key)}', '#{CGI::escapeHTML(v)}');"
+      - else
+        - batch_add += "add_metadata_field('#{CGI::escapeHTML(md_key)}', '#{CGI::escapeHTML(md_value)}');"
 
 .row-fluid
-  .span4
-    = label_tag :@additional_metadata_name, 'Metadata Name:'
-  .span4
-    = label_tag :@additional_metadata_value, 'Metadata Value:'
+  .span5
+    = label_tag :@additional_metadata_name, 'Name:'
+  .span5
+    = label_tag :@additional_metadata_value, 'Value:'
 
 .row-fluid
-  .input_wrap
+  #wrapper.input_wrap
 
 %br
-%button.add_field_button Add More Properties
+%button.add_field_button More...
 
 :javascript
   var gid = 0;
@@ -42,7 +41,7 @@ Note: If the context for a field you want to enter is not available in the
   var md_data = #{md_data};
 
   $(document).ready(function() {
-    var wrapper = $(".input_wrap"); //Fields wrapper
+    var wrapper = $("#wrapper"); //Fields wrapper
     var add_button = $(".add_field_button"); //Add button ID
 
     $(add_button).click(function(e) { //on add input button click
@@ -61,11 +60,11 @@ Note: If the context for a field you want to enter is not available in the
       var select_id = 'md_select_' + gid;
       var key_field = '#{md_select}';
       var value_field = '<input type="text" name="additional_value[]" required="true" value="' + md_value + '">';
-      var remove_field = '<a href="#" class="remove_field">Remove</a>';
+      var remove_field = '<a href="#" class="remove_field">×</a>';
       var md_field = '<div class="row-fluid">'
-        + '<div class="span4">' + key_field + '</div>'
-        + '<div class="span4">' + value_field + '</div>'
-        + '<div class="span1">' + remove_field + '</div>'
+        + '<div class="span5">' + key_field + '</div>'
+        + '<div class="span5">' + value_field + '</div>'
+        + '<div class="span2">' + remove_field + '</div>'
         + '</div>';
 
       $(wrapper).append(md_field);

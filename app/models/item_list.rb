@@ -15,10 +15,13 @@ class ItemList < ActiveRecord::Base
   belongs_to :user
   attr_accessible :name, :id, :user_id, :shared
 
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: {case_sensitive: false}
   validates_length_of :name, :maximum => 255, message: "Name is too long (maximum is 255 characters)"
 
   before_save :default_values
+
+  # include sesame access
+  after_find :load_metadata
 
   has_many :items_in_item_lists, dependent: :delete_all
   has_many :items, through: :items_in_item_lists
@@ -38,6 +41,9 @@ class ItemList < ActiveRecord::Base
   # Indicate Hydra to add access control to the SOLR requests
   self.solr_search_params_logic += [:add_access_controls_to_solr_params]
   self.solr_search_params_logic += [:exclude_unwanted_models]
+
+  # for metadata
+  @metadata = {}
 
   #
   # This method set the item list as shared
@@ -121,7 +127,7 @@ class ItemList < ActiveRecord::Base
   # Add some Items to this ItemList. The Items should be specified by
   # their ids. Don't add an Item which is already part of this ItemList.
   # Return a Set of the ids of the Items which were added.
-  def add_items(item_handles)
+  def add_items(item_list, item_handles)
 
     get_solr_connection
 
@@ -142,6 +148,8 @@ class ItemList < ActiveRecord::Base
       sql = "INSERT INTO items_in_item_lists (handle, item_list_id, created_at, updated_at) VALUES #{inserts.join(", ")}"
       connection.execute sql
     }
+
+    ItemListsHelper.update_metadata(item_list)
 
     bench_end = Time.now
     Rails.logger.debug("Time for adding #{adding.size} items to an item list: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f)*1000)}ms)")
@@ -267,6 +275,66 @@ class ItemList < ActiveRecord::Base
     @current_ability = ability
   end
 
+  # for metadata
+
+  def set_metadata(data)
+    @metadata = data
+  end
+
+  def creator
+    rlt = ""
+    if @metadata.present? && @metadata["basic"].present?
+      rlt = @metadata["basic"]["dcterms:creator"]
+    end
+
+    return rlt
+  end
+
+  def collection
+    rlt = ""
+    if @metadata.present? && @metadata["basic"].present?
+      rlt = @metadata["basic"]["dcterms:isPartOf"]
+    end
+
+    return rlt
+  end
+
+  def abstract
+    rlt = ""
+    if @metadata.present? && @metadata["basic"].present?
+      rlt = @metadata["basic"]["dcterms:abstract"]
+    end
+
+    return rlt
+  end
+
+  # Update attributes, including:
+  #
+  # DB - only name (save!)
+  # Sesame metadata (after_commit)
+  def update_attributes(attrs)
+    # DB
+    self.name = attrs[:name]
+
+    # metadata
+    # basic
+    # only accept below metadata from user input
+    @metadata["basic"]["dcterms:creator"] = attrs[:creator]
+    @metadata["basic"]["dcterms:title"] = attrs[:name]
+    @metadata["basic"]["dcterms:abstract"] = attrs[:abstract]
+
+    # other basic metadata collect from DB
+
+    self.save!
+
+  end
+
+  def get_additional_metadata
+    return @metadata["ext"]
+  end
+
+  # ---------------------
+
   private
 
   #
@@ -359,4 +427,10 @@ class ItemList < ActiveRecord::Base
   def current_ability
     @current_ability
   end
+
+  # load from sesame
+  def load_metadata
+    set_metadata(ItemListsHelper.load_metadata(self.id))
+  end
+
 end

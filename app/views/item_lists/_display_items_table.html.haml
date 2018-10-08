@@ -8,7 +8,7 @@
         %ul.dropdown-menu
           - if (@item_list.user_id == current_user.id)
             %li
-              %a{"data-toggle" => "modal", :href => "#rename_item_list", :role => "button"} Rename
+              %a{"data-toggle" => "modal", :href => "#rename_item_list", :role => "button"} Update Metadata
             %li
               = link_to("Clear", {:controller => "item_lists", :action => "clear"}, :method => 'POST', :id => params[:id].to_i)
           %li
@@ -38,6 +38,12 @@
           = "To gain access to more Collections, visit the "
           = link_to "Licence Agreements", account_licence_agreements_path
           = " page."
+
+      = label_tag "Abstract"
+      .info
+        = @item_list.abstract
+
+
       = render_document_index nil, {}, {:showCheckbox => false, :itemViewList => params[:id]}
       = render 'results_pagination'
   .modal.hide.fade.in{:id => "get_r_script","aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1"}
@@ -66,18 +72,8 @@
     .modal-footer
       %a.btn.btn-primary{"aria-hidden" => "true()", "data-dismiss" => "modal"} Close
 
-  .modal.hide.fade.in{:id => "rename_item_list", "aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1"}
-    .modal-header
-      %button.close{"aria-hidden" => "true", "data-dismiss" => "modal", :type => "button"} ×
-      %h3#myModalLabel= "Rename Item List"
-    = form_for @item_list, :url => url_for(:controller => "item_lists", :action => "update") do |f|
-      #rename_item_list_dialog.modal-body
-        %p
-          = f.label :name
-          = f.text_field :name
-      .modal-footer
-        %a.btn.btn-primary.pull-left{"aria-hidden" => "true()", "data-dismiss" => "modal"} Close
-        = f.submit "Rename Item List", class: "btn btn-primary"
+  = render partial: "modal_update_metadata"
+
 
   .modal.hide.fade.in{:id => "download_item_list", "aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1"}
     .modal-header

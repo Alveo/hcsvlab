@@ -62,6 +62,11 @@ class ItemListsController < ApplicationController
           current_user.reset_authentication_token!
         end
 
+        # prepare for additional metadata
+        @additional_metadata_options = CollectionsHelper.metadata_names_mapping
+
+        @additional_metadata = @item_list.get_additional_metadata
+
         render :index
       }
       format.json {
@@ -102,9 +107,6 @@ class ItemListsController < ApplicationController
     end
   end
 
-
-
-
   def aspera_transfer_spec
     respond_to do |format|
       format.any {
@@ -119,12 +121,20 @@ class ItemListsController < ApplicationController
   #
   #
   def create
-    if request.format == 'json' and request.post?
+    if request.format == 'json' && request.post?
       name = params[:name]
-      if (!name.nil? and !name.blank? and !(name.length > 255)) and (!params[:items].nil? and params[:items].is_a? Array)
-        @item_list = current_user.item_lists.find_or_initialize_by_name(name)
+      # collect metadata
+
+      if (!name.blank? && name.length <= 255) && (!params[:items].blank? && params[:items].is_a?(Array))
+
+        # @item_list = current_user.item_lists.find_or_initialize_by_name(name)
+        @item_list = ItemListsHelper.create_item_list(current_user, params, request.format)
         inject_user_and_ability_to_item_list
         is_new_item_list = @item_list.new_record?
+
+        # # collect metadata
+        # collect_metadata(params)
+
         @item_list.save!
         ids = params[:items].collect { |x| "#{File.basename(File.split(x).first)}:#{File.basename(x)}" }
         add_items_result = add_item_to_item_list(@item_list, ids)
@@ -135,9 +145,9 @@ class ItemListsController < ApplicationController
           @success_message = "#{added_set.count} items added to existing item list #{@item_list.name}"
         end
       else
-        err_message = "name parameter" if name.nil? or name.blank? or name.length > 255
+        err_message = "name parameter" if name.nil? || name.blank? || name.length > 255
         err_message = "items parameter" if params[:items].nil?
-        err_message = "name and items parameters" if (name.nil? or name.blank?) and params[:items].nil?
+        err_message = "name and items parameters" if (name.nil? || name.blank?) and params[:items].nil?
         err_message << " not found" if !err_message.nil?
         err_message = "items parameter not an array" if !params[:items].is_a? Array and err_message.nil?
         respond_to do |format|
@@ -146,7 +156,8 @@ class ItemListsController < ApplicationController
       end
     else
       name = params[:item_list][:name]
-      @item_list = current_user.item_lists.find_or_initialize_by_name(name)
+      # @item_list = current_user.item_lists.find_or_initialize_by_name(name)
+      @item_list = ItemListsHelper.create_item_list(current_user, params)
       inject_user_and_ability_to_item_list
       if @item_list.new_record?
         if params[:all_items] == 'true'
@@ -155,10 +166,12 @@ class ItemListsController < ApplicationController
         else
           documents = params[:sel_document_ids].split(",")
         end
+
         if documents.empty?
           flash[:error] = "No items were selected to add to item list"
           redirect_to :back and return
         end
+
         if @item_list.save
           flash[:notice] = 'Item list created successfully'
 
@@ -166,6 +179,7 @@ class ItemListsController < ApplicationController
           session[:profiler] = add_items_results[:profiler]
           redirect_to @item_list and return
         end
+
         flash[:error] = "Error trying to create an Item list, name too long (max. 255 characters)" if (name.length > 255)
         flash[:error] = "Error trying to create an Item list" unless (name.length > 255)
         redirect_to :back and return
@@ -205,41 +219,38 @@ class ItemListsController < ApplicationController
   # This method with update and rename the item list
   #
   def update
-    if request.format == 'json' and request.put?
-      @item_list = ItemList.find(params[:id])
-      name = params[:name]
-      item_lists = current_user.item_lists.find_by_name(name)
-
-      if (!name.nil? and !name.blank? and !(name.length > 255)) and (item_lists.nil? or @item_list.name == name)
-        @item_list.name = name
-        if @item_list.save
-          render "show" and return
-        end
-      end
-
-      err_message = "couldn't rename item list"
-      err_message = "name too long" if !name.nil? and name.length > 255
-      err_message = "name can't be blank" if name.blank?
-
-      respond_to do |format|
-        format.any { render :json => {:error => err_message}.to_json, :status => 400 }
-      end
-
+    update_rlt = []
+    if request.format == 'json' && request.put?
+      update_rlt = ItemListsHelper.update_item_ist(current_user, params)
     else
-      name = params[:item_list][:name]
-      item_lists = current_user.item_lists.find_by_name(name)
-      if item_lists.nil? or @item_list.name.eql?(name)
-        if @item_list.update_attributes(params[:item_list])
-          flash[:notice] = 'Item list renamed successfully'
+      params[:item_list][:id] = params[:id].to_i
+      params[:item_list][:creator] = current_user.full_name
+      params[:item_list][:additional_key] = params[:additional_key]
+      params[:item_list][:additional_value] = params[:additional_value]
+
+      update_rlt = ItemListsHelper.update_item_ist(current_user, params[:item_list])
+    end
+
+    @item_list = update_rlt[:item_list]
+    message = update_rlt[:message]
+
+    respond_to do |format|
+      format.html do
+        if @item_list.present?
+          flash[:notice] = 'Item list updated successfully'
           redirect_to @item_list and return
+        else
+          flash[:error] = message
+          redirect_to item_lists_url and return
         end
-        flash[:error] = "Error trying to rename Item list, name too long (max. 255 characters)" if (name.length > 255)
-        flash[:error] = "Error trying to rename Item list, name can't be blank" if (name.blank?)
-        flash[:error] = "Error trying to rename Item list" unless (name.length > 255) or (name.blank?)
-        redirect_to @item_list and return
-      else
-        flash[:error] = "Item list with name '#{name}' already exists."
-        redirect_to @item_list and return
+      end
+
+      format.any do
+        if @item_list.present?
+          render "show" and return
+        else
+          render :json => {:error => update_rlt[:message]}.to_json, :status => 400
+        end
       end
     end
   end
@@ -272,8 +283,7 @@ class ItemListsController < ApplicationController
   def destroy
     bench_start = Time.now
 
-    name = @item_list.name
-    @item_list.destroy
+    ItemListsHelper.destroy_item_list(params[:id])
 
     bench_end = Time.now
 
@@ -282,11 +292,11 @@ class ItemListsController < ApplicationController
 
     respond_to do |format|
       format.html do
-        flash[:notice] = "Item list #{name} deleted successfully"
+        flash[:notice] = "Item list '#{@item_list.name}' deleted successfully"
         redirect_to item_lists_path
       end
 
-      format.json { render :json => {:success => "item list #{@item_list.name} deleted successfully"}.to_json }
+      format.json { render :json => {:success => "item list '#{@item_list.name}' deleted successfully"}.to_json }
     end
   end
 
@@ -362,7 +372,7 @@ class ItemListsController < ApplicationController
   #
   #
   def add_item_to_item_list(item_list, item_handles)
-    item_list.add_items(item_handles) unless item_list.nil?
+    item_list.add_items(item_list, item_handles) unless item_list.nil?
   end
 
   #

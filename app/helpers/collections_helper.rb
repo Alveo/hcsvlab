@@ -498,4 +498,79 @@ module CollectionsHelper
     return rlt
   end
 
+  #
+  # Retrieve RDF name mapping
+  #
+  def self.metadata_names_mapping
+    rlt = {}
+
+    exclude_name = ['rdf:type']
+
+    mappings = MetadataHelper::searchable_fields
+    mappings.each do |m|
+      unless exclude_name.include?(m.rdf_name)
+        # rlt[m.rdf_name] = m.user_friendly_name.nil? ? m.rdf_name : m.user_friendly_name
+        rlt[m.rdf_name] = m.rdf_name
+      end
+    end
+
+    rlt
+  end
+
+  #
+  # Returns a validated hash of the collection additional metadata params
+  #
+  def self.validate_collection_additional_metadata(params)
+    if params.has_key?(:additional_key) && params.has_key?(:additional_value)
+      protected_collection_fields = [
+        'dc:identifier',
+        'dcterms:identifier',
+        MetadataHelper::IDENTIFIER.to_s,
+        'dc:title',
+        'dcterms:title',
+        MetadataHelper::TITLE.to_s,
+        'dc:abstract',
+        'dcterms:abstract',
+        MetadataHelper::ABSTRACT.to_s]
+
+      validate_additional_metadata(params[:additional_key].zip(params[:additional_value]), protected_collection_fields)
+    else
+      {}
+    end
+  end
+
+  #
+  # Validates and sanitises a set of additional metadata provided by ingest web forms
+  # Expects a zipped array of additional metadata keys and values, returns a hash of sanitised metadata
+  #
+  def self.validate_additional_metadata(additional_metadata, protected_field_keys, metadata_type = "additional")
+    default_protected_fields = ['@id', '@type', '@context',
+                                'dc:identifier', 'dcterms:identifier', MetadataHelper::IDENTIFIER.to_s]
+    metadata_protected_fields = default_protected_fields | protected_field_keys
+    additional_metadata.delete_if {|key, value| key.blank? && value.blank?}
+    metadata_hash = {}
+    additional_metadata.each do |key, value|
+      meta_key = key.delete(' ')
+      meta_value = value.strip
+      raise ResponseError.new(400), "An #{metadata_type} metadata field is missing a name" if meta_key.blank?
+      raise ResponseError.new(400), "An #{metadata_type} metadata field '#{meta_key}' is missing a value" if meta_value.blank?
+
+      unless metadata_protected_fields.include?(meta_key)
+        # handle multi value
+        if metadata_hash.key?(meta_key)
+          #   key already exists
+          v = metadata_hash[meta_key]
+          if v.is_a? (Array)
+            metadata_hash[meta_key] = (v << meta_value)
+          else
+            metadata_hash[meta_key] = (Array.new([v]) << meta_value)
+          end
+        else
+          metadata_hash[meta_key] = meta_value
+        end
+      end
+    end
+    metadata_hash
+  end
+
 end

@@ -1,0 +1,34 @@
+.row-fluid
+  .modal.hide.fade.in{:id => "rename_item_list", "aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1", }
+    .modal-header
+      %button.close{"aria-hidden" => "true", "data-dismiss" => "modal", :type => "button"} ×
+      %h3#myModalLabel= "Update Item List Metadata"
+    = form_for @item_list, :url => url_for(:controller => "item_lists", :action => "update") do |f|
+      #rename_item_list_dialog.modal-body-lg
+        .row-fluid
+          .span6
+            = f.label :name
+            = f.text_field :name
+          .span6
+            = f.label :creator
+            = f.text_field :creator, disabled: true
+        .row-fluid
+          .span12
+            = f.label "Associated Collection"
+            .btn-toolbar
+              - @item_list.collection.split(",").each do |coll_name|
+                .btn-group
+                  %a.btn-small.btn-success{:href => "#{collection_url(coll_name)}", :target => "_blank"}
+                    #{coll_name}
+
+        .row-fluid
+          .span12
+            = f.label :abstract
+            = f.text_area :abstract, style: "height: 10vh; width: 80%;"
+
+        .row-fluid
+          = render partial: "collections/display_additional_metadata"
+
+      .modal-footer
+        %a.btn.btn-primary.pull-left{"aria-hidden" => "true()", "data-dismiss" => "modal"} Close
+        = f.submit "Update", class: "btn btn-primary"
