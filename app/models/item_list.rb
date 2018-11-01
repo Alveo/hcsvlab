@@ -1,4 +1,5 @@
 require "#{Rails.root}/lib/item_list/frequency_search_helper.rb"
+require 'kramdown'
 
 class ItemList < ActiveRecord::Base
   include Blacklight::BlacklightHelperBehavior
@@ -20,11 +21,11 @@ class ItemList < ActiveRecord::Base
 
   before_save :default_values
 
-  # include sesame access
   after_find :load_metadata
 
   has_many :items_in_item_lists, dependent: :delete_all
   has_many :items, through: :items_in_item_lists
+  has_many :item_list_properties, dependent: :destroy, inverse_of: :item_list
   #
   # Class variables for information about Solr
   #
@@ -43,7 +44,7 @@ class ItemList < ActiveRecord::Base
   self.solr_search_params_logic += [:exclude_unwanted_models]
 
   # for metadata
-  @metadata = {}
+  @metadata = {"basic" => {}, "ext" => {}}
 
   #
   # This method set the item list as shared
@@ -149,7 +150,7 @@ class ItemList < ActiveRecord::Base
       connection.execute sql
     }
 
-    ItemListsHelper.update_metadata(item_list)
+    # TODO: update metadata dcterms:isPartOf
 
     bench_end = Time.now
     Rails.logger.debug("Time for adding #{adding.size} items to an item list: (#{'%.1f' % ((bench_end.to_f - bench_start.to_f)*1000)}ms)")
@@ -308,29 +309,32 @@ class ItemList < ActiveRecord::Base
     return rlt
   end
 
-  # Update attributes, including:
-  #
-  # DB - only name (save!)
-  # Sesame metadata (after_commit)
-  def update_attributes(attrs)
-    # DB
-    self.name = attrs[:name]
-
-    # metadata
-    # basic
-    # only accept below metadata from user input
-    @metadata["basic"]["dcterms:creator"] = attrs[:creator]
-    @metadata["basic"]["dcterms:title"] = attrs[:name]
-    @metadata["basic"]["dcterms:abstract"] = attrs[:abstract]
-
-    # other basic metadata collect from DB
-
-    self.save!
-
-  end
-
   def get_additional_metadata
     return @metadata["ext"]
+  end
+
+  def update_metadata
+
+    # update all properties
+    data_type = ["basic", "ext"]
+    data_type.each do |dt|
+
+      @metadata[dt].each do |key, value|
+        if key.blank? || value.blank?
+          next
+        end
+
+        prop = self.item_list_properties.find_by_property(key)
+        if prop.blank?
+        #   new data
+          prop = self.item_list_properties.create(property: key, value: value)
+        else
+          prop.value = value
+        end
+
+        prop.save!
+      end
+    end
   end
 
   # ---------------------

@@ -7,16 +7,16 @@ class User < ActiveRecord::Base
   devise :database_authenticatable, :registerable, :lockable, :recoverable, :trackable, :validatable, :timeoutable, :token_authenticatable, :aaf_rc_authenticatable
 
   belongs_to :role
-  has_many :user_sessions
-  has_many :user_searches
-  has_many :item_lists
-  has_many :user_licence_agreements
-  has_many :user_licence_requests
-  has_many :user_annotations
-  has_many :collection_lists, inverse_of: :owner, foreign_key: :owner_id
-  has_many :collections, inverse_of: :owner, foreign_key: :owner_id
+  has_many :user_sessions, dependent: :destroy
+  has_many :user_searches, dependent: :destroy
+  has_many :item_lists, dependent: :destroy
+  has_many :user_licence_agreements, dependent: :destroy
+  has_many :user_licence_requests, dependent: :destroy
+  has_many :user_annotations, dependent: :destroy
+  has_many :collection_lists, inverse_of: :owner, foreign_key: :owner_id, dependent: :destroy
+  has_many :collections, inverse_of: :owner, foreign_key: :owner_id, dependent: :destroy
   has_many :licences, inverse_of: :owner, foreign_key: :owner_id
-  has_many :document_audits
+  has_many :document_audits, dependent: :destroy
 
 # Setup accessible attributes (status/approved flags should NEVER be accessible by mass assignment)
   attr_accessible :email, :password, :password_confirmation, :first_name, :last_name, :status, :role_id

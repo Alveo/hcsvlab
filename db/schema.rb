@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20180815051158) do
+ActiveRecord::Schema.define(:version => 20181016220849) do
 
   create_table "attachments", :force => true do |t|
     t.string   "file"
@@ -124,6 +124,14 @@ ActiveRecord::Schema.define(:version => 20180815051158) do
     t.boolean  "imported"
     t.datetime "created_at",    :null => false
     t.datetime "updated_at",    :null => false
+  end
+
+  create_table "item_list_properties", :force => true do |t|
+    t.string   "property"
+    t.string   "value"
+    t.integer  "item_list_id"
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
   end
 
   create_table "item_lists", :force => true do |t|

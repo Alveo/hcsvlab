@@ -41,8 +41,7 @@
 
       = label_tag "Abstract"
       .info
-        = @item_list.abstract
-
+        = Kramdown::Document.new(@item_list.abstract.nil? ? '' : @item_list.abstract).to_html.html_safe
 
       = render_document_index nil, {}, {:showCheckbox => false, :itemViewList => params[:id]}
       = render 'results_pagination'

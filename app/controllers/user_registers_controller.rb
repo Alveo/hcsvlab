@@ -37,7 +37,8 @@ class UserRegistersController < Devise::RegistrationsController
 
   # Override the update method in the RegistrationsController so that we don't require password on update
   def update
-    self.resource = resource_class.to_adapter.get!(send(:"current_#{resource_name}").to_key)
+    # self.resource = resource_class.to_adapter.get!(send(:"current_#{resource_name}").to_key)
+    self.resource = current_user
 
     if resource.update_attributes(params[resource_name])
       if is_navigational_format?
@@ -61,6 +62,8 @@ class UserRegistersController < Devise::RegistrationsController
 
   # Mostly the same as the devise 'update' method, just call a different method on the model
   def update_password
+    self.resource = current_user
+
     if resource.update_password(params[resource_name])
       set_flash_message :notice, :password_updated if is_navigational_format?
       sign_in resource_name, resource, :bypass => true

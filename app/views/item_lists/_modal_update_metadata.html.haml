@@ -32,3 +32,11 @@
       .modal-footer
         %a.btn.btn-primary.pull-left{"aria-hidden" => "true()", "data-dismiss" => "modal"} Close
         = f.submit "Update", class: "btn btn-primary"
+
+:javascript
+  $(document).ready(function() {
+    var simplemde = new SimpleMDE({
+      element: $("#item_list_abstract")[0]
+    });
+
+  });

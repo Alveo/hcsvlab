@@ -1,5 +1,5 @@
 common: &common
-  # this is to map attributes as described in http://aaf.edu.au/technical/aaf-core-attributes/
+  # this is to map attributes as described in https://validator.aaf.edu.au/documentation/attributes
   # to their respective field in the database
   # uncomment them if need be
   user-mapping:

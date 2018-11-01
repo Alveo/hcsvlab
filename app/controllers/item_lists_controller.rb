@@ -121,14 +121,21 @@ class ItemListsController < ApplicationController
   #
   #
   def create
+
+    if params[:item_list].blank?
+      params[:item_list] = {}
+      params[:item_list][:name] = params[:name]
+    end
+
+    params[:item_list][:creator] = current_user.full_name
+
     if request.format == 'json' && request.post?
-      name = params[:name]
-      # collect metadata
+      name = params[:item_list][:name]
 
       if (!name.blank? && name.length <= 255) && (!params[:items].blank? && params[:items].is_a?(Array))
 
         # @item_list = current_user.item_lists.find_or_initialize_by_name(name)
-        @item_list = ItemListsHelper.create_item_list(current_user, params, request.format)
+        @item_list = ItemListsHelper.create_item_list(current_user, params[:item_list])
         inject_user_and_ability_to_item_list
         is_new_item_list = @item_list.new_record?
 
@@ -136,6 +143,10 @@ class ItemListsController < ApplicationController
         # collect_metadata(params)
 
         @item_list.save!
+        @item_list.set_metadata(ItemListsHelper.convert_metadata(params[:item_list]))
+        @item_list.update_metadata
+
+
         ids = params[:items].collect { |x| "#{File.basename(File.split(x).first)}:#{File.basename(x)}" }
         add_items_result = add_item_to_item_list(@item_list, ids)
         added_set = add_items_result[:addedItems]
@@ -157,7 +168,7 @@ class ItemListsController < ApplicationController
     else
       name = params[:item_list][:name]
       # @item_list = current_user.item_lists.find_or_initialize_by_name(name)
-      @item_list = ItemListsHelper.create_item_list(current_user, params)
+      @item_list = ItemListsHelper.create_item_list(current_user, params[:item_list])
       inject_user_and_ability_to_item_list
       if @item_list.new_record?
         if params[:all_items] == 'true'
@@ -173,6 +184,9 @@ class ItemListsController < ApplicationController
         end
 
         if @item_list.save
+          @item_list.set_metadata(ItemListsHelper.convert_metadata(params[:item_list]))
+          @item_list.update_metadata
+
           flash[:notice] = 'Item list created successfully'
 
           add_items_results = add_item_to_item_list(@item_list, documents)
@@ -220,16 +234,22 @@ class ItemListsController < ApplicationController
   #
   def update
     update_rlt = []
-    if request.format == 'json' && request.put?
-      update_rlt = ItemListsHelper.update_item_ist(current_user, params)
-    else
-      params[:item_list][:id] = params[:id].to_i
-      params[:item_list][:creator] = current_user.full_name
-      params[:item_list][:additional_key] = params[:additional_key]
-      params[:item_list][:additional_value] = params[:additional_value]
 
-      update_rlt = ItemListsHelper.update_item_ist(current_user, params[:item_list])
+    if params[:item_list].blank?
+      params[:item_list] = {}
     end
+
+    if request.format == 'json' && request.put?
+      # API params still need to be confirmed
+      params[:item_list][:name] = params[:name]
+    end
+
+    params[:item_list][:id] = params[:id].to_i
+    params[:item_list][:creator] = current_user.full_name
+    params[:item_list][:additional_key] = params[:additional_key]
+    params[:item_list][:additional_value] = params[:additional_value]
+
+    update_rlt = ItemListsHelper.update_item_ist(params[:item_list])
 
     @item_list = update_rlt[:item_list]
     message = update_rlt[:message]
