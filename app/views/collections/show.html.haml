@@ -52,7 +52,7 @@
                 - when nil
                   %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
 
-                - when "n/a"
+                - when "processing"
                   %button.btn{:disabled => "disabled", :type => "button"} Text analysis processing...
 
                 - when @collection.vt_url.start_with?("error")
@@ -106,8 +106,8 @@
       %h3#myModalLabel #{@collection.name}: select text files to be analysed
     .modal-body
       %p
-        %label Select only files that match a GLOB pattern (wildcard pathname matching, "*-plain.txt" would be used if blank)
-        = text_field_tag :doc_filter, nil, :placeholder => "e.g. *-plain.txt"
+        %label Select only files that match a GLOB pattern (wildcard pathname matching, "*.txt" would be used if blank)
+        = text_field_tag :doc_filter, nil, :placeholder => "e.g. *.txt"
       #preview-result
         You can see the preview result here.
     .modal-footer

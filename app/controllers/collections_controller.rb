@@ -792,9 +792,20 @@ class CollectionsController < ApplicationController
 
     if collection.vt_url.nil?
       # need to generate vt_url
-      CollectionsHelper.gen_vt_link(collection_name, params[:doc_filter])
 
-      flash[:notice] = "Collection text analysis finished."
+      doc_filter = '*.txt'
+      if !params[:doc_filter].blank?
+        doc_filter = params[:doc_filter]
+      end
+
+      msg = CollectionsHelper.gen_vt_link(collection_name, doc_filter)
+
+      if msg.nil?
+        flash[:notice] ="Collection text analysis finished."
+      else
+        flash[:error] = msg
+      end
+
       redirect_to collection_path(collection_name) and return
     end
   end

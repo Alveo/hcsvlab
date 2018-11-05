@@ -317,21 +317,24 @@ module CollectionsHelper
   #
   # 1. export collection document to zip file
   # 2. import zip file to Voyant-Tools server
-  # 3. write corpus id to voyant_tools.yml
   #
-  def self.gen_vt_link(collection_name, pattern='')
+  # Return:
+  #
+  # nil if success, or error message
+  #
+  def self.gen_vt_link(collection_name, pattern)
     logger.debug "gen_vt_link: start - collection[#{collection_name}], pattern[#{pattern}]"
+    msg = nil
 
     collection = Collection.find_by_name(collection_name)
     if collection.nil?
-      raise ResponseError.new(404), "A collection with the name '#{collection_name}' not exist."
+      msg = "A collection with the name '#{collection_name}' not exist."
+      logger.debug "gen_vt_link: end - #{msg}"
+
+      return msg
     end
 
     zip_file = File.join(APP_CONFIG['download_tmp_dir'], "#{collection_name}.vt.zip")
-
-    # mark processing
-    collection.vt_url = "n/a"
-    collection.save
 
     rlt = export_collection_doc(collection_name, zip_file, pattern)
     if rlt[:code] == 0
@@ -339,23 +342,20 @@ module CollectionsHelper
       #  proceed import
       rlt = import_vt(collection_name, zip_file)
 
-      msg = ''
       if rlt[:code] == 0
-        msg = rlt[:message]
+        logger.debug "gen_vt_link: vt_url=#{msg}"
         collection.vt_url = rlt[:message]
+        collection.save
       else
-        msg = rlt[:message]
-        collection.vt_url = "error"
+        msg = "import collection document to Voyant Server failed: #{rlt[:message]}"
       end
-
-      logger.debug "gen_vt_link: vt_url=#{msg}"
-
-      collection.save
     else
-      logger.error "export files to zip failed: #{rlt[:message]}"
+      msg = "export files to zip failed: #{rlt[:message]}"
     end
 
-    logger.debug "gen_vt_link: end"
+    logger.debug "gen_vt_link: end - #{msg}"
+
+    return msg
   end
 
   #
@@ -424,6 +424,9 @@ module CollectionsHelper
           rlt[:message] = nil
         else
           #     no doc found according to current pattern
+          # for display purpose
+          pattern.gsub! "%", "*"
+
           rlt[:message] = "no document found according to pattern '#{pattern}'"
         end
       rescue Exception => e
@@ -451,7 +454,7 @@ module CollectionsHelper
 
     rlt = []
 
-    default_pattern = "%-plain.txt"
+    default_pattern = "%.txt"
     if !pattern.present?
       pattern = default_pattern
     end
