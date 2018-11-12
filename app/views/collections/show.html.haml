@@ -2,6 +2,7 @@
 
 - metadata_fields = collection_show_fields(@collection)
 - collection_status = ""
+- is_show_vt = false
 - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
   - collection_status = " (#{@collection.status})"
 
@@ -48,22 +49,13 @@
 
             - if CollectionsHelper.is_voyant_server_on?
               - if CollectionsHelper.is_owner(current_user, @collection) || (!current_user.nil? && current_user.is_superuser?)
-                - case @collection.vt_url
-                - when nil
-                  %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Start analyse
-
-                - when "processing"
-                  %button.btn{:disabled => "disabled", :type => "button"} Text analysis processing...
-
-                - when @collection.vt_url.start_with?("error")
-                  %button.btn{:disabled => "disabled", :type => "button"} Text analysis can't proceed...
-
+                - if @collection.vt_url.blank?
+                  %a.btn.btn-primary{"data-toggle" => "modal", :href => "#previewModal"} Configure Voyant
                 - else
-                  = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
+                  - is_show_vt = true
               - else
                 - if @collection.vt_url.present? && @collection.vt_url.start_with?("http")
-                  = link_to "Text Analysis", @collection.vt_url, id: 'vt_link', :class => "btn btn-primary", :target => '_blank'
-
+                  - is_show_vt = true
 
 
   .row-fluid
@@ -95,6 +87,11 @@
     .span1
     .span8
       .row-fluid
+        - if is_show_vt
+          .info.alert-info
+            This collection is available for analysis using Voyant Tools.
+            = link_to "Go to Voyant Tools", @collection.vt_url, id: 'vt_link', :class => "alert-link", :target => '_blank'
+      .row-fluid
         = @collection.html_text.html_safe
 
 = render 'shared/nectar_attribution'
@@ -103,17 +100,21 @@
   = form_tag({controller: 'collections', action: 'analyse_collection'}, method: 'post', :id => 'proceed_analyse_collection_form') do |f|
     .modal-header
       %button.close{"aria-hidden" => "true", "data-dismiss" => "modal", :type => "button"} ×
-      %h3#myModalLabel #{@collection.name}: select text files to be analysed
+      %h3#myModalLabel Configure Voyant integration for #{@collection.name}
     .modal-body
       %p
-        %label Select only files that match a GLOB pattern (wildcard pathname matching, "*.txt" would be used if blank)
+        %label
+          Make files from this collection available for analysis in Voyant Tools.  Once configured, any user with access to this collection will be able to analyse these texts in Voyant via a link from this page. You must select which files will be sent to Voyant, these should be files containing plain text, preferably without markup.
+
+        Use a pattern to match the files to be sent (eg. *.txt for all text files).   Click on “Preview” to preview the list of files matched.  Click on “Confirm” to finalise the configuration.
+      %p
         = text_field_tag :doc_filter, nil, :placeholder => "e.g. *.txt"
       #preview-result
         You can see the preview result here.
     .modal-footer
       %button.btn{"aria-hidden" => "true", "data-dismiss" => "modal"} Close
       = link_to 'Preview', preview_doc_filter_path(@collection.name), remote: true, :class => "btn btn-warning", :id => "preview_link"
-      = submit_tag 'Proceed analyse', :class => "btn btn-primary", :id => 'proceed_btn'
+      = submit_tag 'Confirm', :class => "btn btn-primary", :id => 'proceed_btn'
 
 :javascript
   $("#preview_link").click(function() {
