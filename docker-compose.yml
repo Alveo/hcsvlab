@@ -1,9 +1,5 @@
 version: '3'
 services:
-  db:
-    image: postgres
-    volumes:
-    - ./tmp/db:/var/lib/postgresql/data
   web:
     build: .
     environment:
@@ -15,8 +11,13 @@ services:
     - "3000:3000"
     depends_on:
     - db
-    - sesame
-    - activemq
+    - solr
+    #- sesame
+    #- activemq
+  db:
+    image: postgres
+    volumes:
+    - ./tmp/db:/var/lib/postgresql/data
   sesame:
     # https://hub.docker.com/r/subotic/openrdf-sesame
     image: subotic/openrdf-sesame
