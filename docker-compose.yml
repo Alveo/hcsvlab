@@ -1,0 +1,45 @@
+version: '3'
+services:
+  db:
+    image: postgres
+    volumes:
+    - ./tmp/db:/var/lib/postgresql/data
+  web:
+    build: .
+    environment:
+      RAILS_ENV: "docker"
+    command: bundle exec rails s -p 3000 -b '0.0.0.0'
+    volumes:
+    - .:/myapp
+    ports:
+    - "3000:3000"
+    depends_on:
+    - db
+    - sesame
+    - activemq
+  sesame:
+    # https://hub.docker.com/r/subotic/openrdf-sesame
+    image: subotic/openrdf-sesame
+    volumes:
+      - ./tmp/sesame:/data
+    ports:
+      - "8080:8080"
+    # add volume for data store
+  activemq:
+    # https://hub.docker.com/r/webcenter/activemq/
+    image: webcenter/activemq
+    ports:
+      - "8161:8161"
+    volumes:
+      - ./tmp/activemq:/data
+  solr:
+    # https://hub.docker.com/_/solr/
+    image: solr:5
+    volumes:
+      - ./tmp/solr:/opt/solr/server/solr/mycores
+    ports:
+      - "8983:8983"
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - mycore

@@ -4,7 +4,6 @@
   :vhost: /alveo
   :exchange: 'alveo.workers'
 
-# This is a sample config file that does not have multiple solr instances. You will also need to be sure to
 development:
   <<: *rabbitmq_common
 test:
@@ -28,3 +27,6 @@ trove:
   <<: *rabbitmq_common
   :host: alveo-mq.alveo.edu.au
 
+docker:
+  <<: *rabbitmq_common
+  :host: rabbitmq

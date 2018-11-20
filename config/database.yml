@@ -49,3 +49,10 @@ nci: &nci
 trove:
   <<: *common
   database: hcsvlab
+
+docker:
+  <<: *common
+  host: db
+  username: postgres
+  password:
+  database: hcsvlab

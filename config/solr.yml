@@ -19,3 +19,6 @@ production:
   url: http://localhost:8080/solr/hcsvlab
 trove:
   url: http://alveo-solr.alveo.edu.au:8080/solr/hcsvlab
+
+docker:
+  url: http://solr:8983/solr/mycore

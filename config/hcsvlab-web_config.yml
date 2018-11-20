@@ -73,3 +73,13 @@ trove:
   default_data_owner: karl.li@mq.edu.au
   licence_access_request_notification_sender: karl.li@mq.edu.au
   licence_access_request_response_sender: karl.li@mq.edu.au
+
+docker:
+  password_reset_email_sender: karl.li@mq.edu.au
+  account_request_user_status_email_sender: karl.li@mq.edu.au
+  account_request_admin_notification_sender: karl.li@mq.edu.au
+  default_data_owner: karl.li@mq.edu.au
+  licence_access_request_notification_sender: karl.li@mq.edu.au
+  licence_access_request_response_sender: karl.li@mq.edu.au
+
+

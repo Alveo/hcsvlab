@@ -42,3 +42,8 @@ cucumber:
 trove:
   url: http://alveo-sesame.alveo.edu.au:8080/openrdf-sesame
   <<: *common
+
+docker:
+  url: http://sesame:8080/openrdf-sesame
+  <<: *common
+
