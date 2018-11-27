@@ -395,4 +395,149 @@ RSpec.describe ContributionsHelper, :type => :helper do
     end
   end
 
+  describe "test export_as_zip" do
+    let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "Rodney.wav")}
+    let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "Isaac.wav")}
+    let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "Phoebe.wav")}
+
+    let!(:contrib_dir) {ContributionsHelper.contribution_dir(contribution)}
+    let!(:contrib_doc_1) do
+      FactoryGirl.create(
+        :document,
+        item: item,
+        file_name: "#{item.get_name}-Rodney.ps",
+        file_path: "#{contrib_dir}/#{item.get_name}-Rodney.ps")
+    end
+    let!(:contrib_doc_2) do
+      FactoryGirl.create(
+        :document,
+        item: item,
+        file_name: "#{item.get_name}-Isaac.txt",
+        file_path: "#{contrib_dir}/#{item.get_name}-Isaac.txt")
+    end
+    let!(:contrib_doc_3) do
+      FactoryGirl.create(
+        :document,
+        item: item,
+        file_name: "#{item.get_name}-Phoebe.txt",
+        file_path: "#{contrib_dir}/#{item.get_name}-Phoebe.txt")
+    end
+
+    let!(:contrib_mapping_1) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_1)}
+    let!(:contrib_mapping_2) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_2)}
+    let!(:contrib_mapping_3) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_3)}
+
+    before(:each) do
+      src_dir = "#{Rails.root}/test/samples/contributions/contrib_doc"
+
+      # collection document file
+      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map{|f| File.join(src_dir, f)}
+      dest_dir = "/data/collections/#{item.handle.split(':').first}/"
+      FileUtils.mkdir_p(dest_dir)
+      FileUtils.cp(files, dest_dir)
+
+      # contribution document file
+      files = [contrib_doc_1.file_name, contrib_doc_2.file_name, contrib_doc_3.file_name].map{|f| File.join(src_dir, f)}
+      dest_dir = ContributionsHelper.contribution_dir(contribution)
+      FileUtils.mkdir_p(dest_dir)
+      FileUtils.cp(files, dest_dir)
+    end
+
+
+    context "download all files" do
+      it "downloads all files as zip when contribution contains file(s)" do
+
+        pattern = "*"
+        zip_path = ContributionsHelper.export_as_zip(contribution, pattern)
+        expected_zip_path = File.join(APP_CONFIG['download_tmp_dir'], "contrib_export_#{contribution.id}_")
+        expect(zip_path).to start_with "#{expected_zip_path}"
+
+      end
+    end
+  end
+
+  describe "test all_related_files" do
+    let!(:doc_1) {FactoryGirl.create(:document, item: item, file_name: "Rodney.wav")}
+    let!(:doc_2) {FactoryGirl.create(:document, item: item, file_name: "Isaac.wav")}
+    let!(:doc_3) {FactoryGirl.create(:document, item: item, file_name: "Phoebe.wav")}
+
+    let!(:contrib_doc_1) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Rodney.ps")}
+    let!(:contrib_doc_2) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Isaac.txt")}
+    let!(:contrib_doc_3) {FactoryGirl.create(:document, item: item, file_name: "#{item.get_name}-Phoebe.txt")}
+
+    let!(:contrib_mapping_1) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_1)}
+    let!(:contrib_mapping_2) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_2)}
+    let!(:contrib_mapping_3) {FactoryGirl.create(:contribution_mapping, contribution: contribution, document: contrib_doc_3)}
+
+    before do
+      src_dir = "#{Rails.root}/test/samples/contributions/contrib_doc"
+      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map{|f| File.join(src_dir, f)}
+      dest_dir = ContributionsHelper.contribution_dir(contribution)
+      FileUtils.mkdir_p(ContributionsHelper.contribution_dir(contribution))
+      FileUtils.cp(files, dest_dir)
+    end
+
+    context "wildcard is '*'" do
+      it "returns all files" do
+        files = ContributionsHelper.all_related_files(contribution, '*')
+
+        expected_files = Document.find_all_by_item_id(item.id).map{|f| f.file_path}
+
+        expected_files.each do |f|
+          expect(files.include? (f)).to be_true
+        end
+      end
+    end
+
+    context "wildcard is nil" do
+      it "returns all files" do
+        files = ContributionsHelper.all_related_files(contribution)
+
+        expected_files = Document.find_all_by_item_id(item.id).map{|f| f.file_path}
+
+        expected_files.each do |f|
+          expect(files.include? (f)).to be_true
+        end
+      end
+    end
+
+    context "wildcard is single file type" do
+      it "returns all files" do
+        files = ContributionsHelper.all_related_files(contribution, '*.ps')
+
+        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.ends_with? ('.ps')}
+
+        expected_files.each do |f|
+          expect(files.include? (f.file_path)).to be_true
+        end
+      end
+    end
+
+    context "wildcard is multi file type" do
+      it "returns all files" do
+        files = ContributionsHelper.all_related_files(contribution, '*.ps, *.txt')
+
+        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.ends_with?('.ps') || f.file_path.ends_with?('.txt')}
+
+        expected_files.each do |f|
+          expect(files.include? (f.file_path)).to be_true
+        end
+      end
+    end
+
+    context "wildcard is particular pattern" do
+      it "returns all files" do
+        files = ContributionsHelper.all_related_files(contribution, 'Rodney')
+
+        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.include?('Rodney')}
+
+        expected_files.each do |f|
+          expect(files.include? (f.file_path)).to be_true
+        end
+      end
+    end
+
+
+  end
 end
+

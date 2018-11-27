@@ -1,0 +1,32 @@
+= form_for @contribution, :method => 'GET', :url => url_for(:controller => 'contributions', :action => 'export', :format => 'zip', :id => params[:id].to_i) do |f|
+  #download_all_documents_dialog.modal-body
+    %p
+      = f.label 'Export all files within collection item(s) related to contribution'
+      = hidden_field_tag :wildcard, "*"
+  .modal-separator
+    = f.submit 'Export All', class: 'btn btn-primary', :id => "download_all_as_zip", :onclick => 'showProgressAnimation(); self.setInterval("checkCompleteCookie();", 4000);'
+
+
+
+= form_for @contribution, :method => 'GET', :url => url_for(:controller => 'contributions', :action => 'export', :format => 'zip', :id => params[:id].to_i) do |f|
+  #download_selected_document_types_dialog.modal-body
+    %p
+      = f.label 'Export only files of a particular type'
+      - @doc_filetypes.each do |key, value|
+        - glob = key.blank? ? 'no extension' : "*#{key}"
+        .item_list-checkbox_filter
+          = check_box_tag 'doc_filter[]', key
+          = label_tag key, "#{glob} (#{value})", :class => "checkbox inline"
+
+  .modal-separator
+    = f.submit 'Export Selected', class: 'btn btn-primary', :onclick => 'showProgressAnimation(); self.setInterval("checkCompleteCookie();", 4000);'
+
+
+= form_for @contribution, :method => 'GET', :url => url_for(:controller => 'contributions', :action => 'export', :format => 'zip', :id => params[:id].to_i) do |f|
+  #download_matching_documents_dialog.modal-body
+    %p
+      = f.label 'Export only files that match a wildcard pattern (case insensitive)'
+      = text_field_tag :wildcard, nil, :placeholder => "e.g. #{Item::DownloadItemsHelper::EXAMPLE_DOCUMENT_FILTER}"
+
+  .modal-separator
+    = f.submit 'Export Matches', class: 'btn btn-primary', :onclick => 'showProgressAnimation(); self.setInterval("checkCompleteCookie();", 4000);'

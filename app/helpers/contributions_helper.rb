@@ -749,23 +749,30 @@ module ContributionsHelper
   end
 
   #
-  # Export contribution as zip file. Compress all files in contrib_dir as {id}.zip
+  # Export contribution document files and related collection document files as zip file.
   #
-  # Contribution document files only include those within contribution_mappings.
+  # Because contribution document files are related to item but not specific document, so when export with wildcard, the files are actually from related items (thru contribution_mappings).
+  #
+  # So finally this is equal to export files as zip from item documents.
+  #
+  # @param contribution specific contribution
+  # @param wildcard String pattern
   #
   # Return zip file path if success , otherwise exception throws
   #
-  def self.export_as_zip(contribution)
-    logger.debug "export_as_zip: start - contribution[#{contribution}]"
+  def self.export_as_zip(contribution, wildcard = '*')
+    logger.debug "export_as_zip: start - contribution[#{contribution}], wildcard[#{wildcard}]"
 
     rlt = nil
 
     begin
-      # collect contribution document file path
-      file_path = []
-      cm_list = ContributionMapping.where(contribution_id: contribution.id)
-      cm_list.each do |cm|
-        file_path << cm.document.file_path
+      # retrieve file path
+      file_path = all_related_files(contribution, wildcard)
+
+      logger.debug "export_as_zip: file_path[#{file_path}]"
+
+      if !file_path.any?
+        raise Exception.new("cannot find any file with wildcard match: #{wildcard}")
       end
 
       # generate zip path
@@ -782,6 +789,43 @@ module ContributionsHelper
 
     logger.debug "export_as_zip: end - rlt[#{rlt}]"
 
+    return rlt
+  end
+
+  # Retrieve all related document files from related items thru collection_mappings
+  #
+  # @param contribution - specific contribution
+  # @return string array of document file_path
+  def self.all_related_files(contribution, wildcard='*')
+    logger.debug "all_related_files: start - contribution[#{contribution}], wildcard[#{wildcard}]"
+
+    rlt = nil
+
+    # convert wildcard
+    if wildcard.nil?
+      wildcard = ''
+    else
+      # remove '*' and blank character, then replace ',' with '|'
+      wildcard = wildcard.gsub('*', '').gsub(/\s+/, '').gsub(',', '|').downcase
+    end
+
+    if !contribution.nil?
+      sql = %(
+        select distinct d.file_path
+        from contribution_mappings cm, documents d, items i
+        where
+          contribution_id=#{contribution.id}
+          and cm.item_id=d.item_id
+          and lower(d.file_name) similar to '%(#{wildcard})%';
+      )
+
+      result = ActiveRecord::Base.connection.execute(sql)
+      if result.count > 0
+        rlt = result.map{|e| e["file_path"]}
+      end
+    end
+
+    logger.debug "all_related_files: end - rlt[#{rlt}]"
     return rlt
   end
 

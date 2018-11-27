@@ -121,6 +121,17 @@ class ContributionsController < ApplicationController
         :abstract => metadata["dcterms:abstract"].to_json
       }
 
+      # extract files type
+      @doc_filetypes = {}
+      files = ContributionsHelper.all_related_files(@contribution)
+
+      files.each do |f|
+        ext = File.extname(f)
+        # if file has no ext, ext is ""
+        # if user export file type "no extension", wildcard is '*', then download all files
+        @doc_filetypes[ext] = (@doc_filetypes[ext].nil? ? 1 : @doc_filetypes[ext]+1)
+      end
+
       # load mapping data
       @contribution_mapping = ContributionsHelper.load_contribution_mapping(@contribution)
 
@@ -361,6 +372,10 @@ class ContributionsController < ApplicationController
   #
   def export
     id = params[:id]
+    wildcard = params[:wildcard]
+    if !params[:doc_filter].blank?
+      wildcard = params[:doc_filter].join(',')
+    end
     contrib = Contribution.find_by_id(id)
 
     if contrib.nil?
@@ -371,7 +386,7 @@ class ContributionsController < ApplicationController
     end
 
     begin
-      zip_path = ContributionsHelper.export_as_zip(contrib)
+      zip_path = ContributionsHelper.export_as_zip(contrib, wildcard)
 
       send_file zip_path, :type => 'application/zip',
                 :disposition => 'attachment',
@@ -387,6 +402,10 @@ class ContributionsController < ApplicationController
         }
         format.json {
           render :json => {:error => "#{msg}"}, :status => 422
+        }
+        format.zip {
+          flash[:error] = msg
+          redirect_to contrib_show_url(id)
         }
       end
     end

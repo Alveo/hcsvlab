@@ -17,7 +17,7 @@
             - if ContributionsHelper::is_owner?(current_user, @contribution)
               = link_to "Import Zip", contrib_preview_path, id: 'import_contribution', :class => "btn btn-primary"
 
-            = link_to "Export Zip", contrib_export_path("#{@contribution.id}"), id: 'export_contribution', :class => "btn btn-primary"
+            = link_to "Export Zip", "#export_modal", id: 'export_contribution', :class => "btn btn-primary", 'data-toggle' => 'modal'
 
             - if current_user.is_superuser? || ContributionsHelper::is_owner?(current_user, @contribution)
               = link_to "Delete", contrib_delete_path, method: :delete, id: 'delete_contribution', :class => "btn btn-danger", data: {confirm: "Are you sure to delete current contribution?"}
@@ -47,5 +47,13 @@
 
         %h2 Documents
         = render 'display_contribution_mappings'
+
+
+  .modal.hide.fade.in{:id => "export_modal", "aria-hidden" => "true", "aria-labelledby" => "myModalLabel", :role => "dialog", :tabindex => "-1"}
+    .modal-header
+      %button.close{"aria-hidden" => "true", "data-dismiss" => "modal", :type => "button"} ×
+      %h3#myModalLabel= "Export Options for Contribution: #{@contribution.name}"
+    = render 'export_as_zip'
+
 
 = render 'shared/nectar_attribution'
