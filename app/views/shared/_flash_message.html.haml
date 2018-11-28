@@ -1,0 +1,10 @@
+.flash_messages
+  - [:success, :info, :warning, :alert, :danger, :notice, :error].each do |type|
+    -#- alert_class = type == :notice ? 'info' : type
+    - alert_class = type
+    - if flash[type]
+      -#alert/danger/error alert should remain to alarm user
+      - permanent = [:alert, :danger, :error].include?(alert_class) ? "permanent" : ""
+      %div{:class => "alert alert-#{alert_class} #{permanent}"}
+        = flash[type]
+        %a.close{"data-dismiss" => "alert", :href => "#"} ×

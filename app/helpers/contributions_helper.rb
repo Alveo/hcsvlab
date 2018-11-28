@@ -799,7 +799,7 @@ module ContributionsHelper
   def self.all_related_files(contribution, wildcard='*')
     logger.debug "all_related_files: start - contribution[#{contribution}], wildcard[#{wildcard}]"
 
-    rlt = nil
+    rlt = []
 
     # convert wildcard
     if wildcard.nil?

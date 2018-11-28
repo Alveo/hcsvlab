@@ -124,7 +124,6 @@ class ContributionsController < ApplicationController
       # extract files type
       @doc_filetypes = {}
       files = ContributionsHelper.all_related_files(@contribution)
-
       files.each do |f|
         ext = File.extname(f)
         # if file has no ext, ext is ""
