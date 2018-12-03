@@ -431,13 +431,13 @@ RSpec.describe ContributionsHelper, :type => :helper do
       src_dir = "#{Rails.root}/test/samples/contributions/contrib_doc"
 
       # collection document file
-      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map{|f| File.join(src_dir, f)}
+      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map {|f| File.join(src_dir, f)}
       dest_dir = "/data/collections/#{item.handle.split(':').first}/"
       FileUtils.mkdir_p(dest_dir)
       FileUtils.cp(files, dest_dir)
 
       # contribution document file
-      files = [contrib_doc_1.file_name, contrib_doc_2.file_name, contrib_doc_3.file_name].map{|f| File.join(src_dir, f)}
+      files = [contrib_doc_1.file_name, contrib_doc_2.file_name, contrib_doc_3.file_name].map {|f| File.join(src_dir, f)}
       dest_dir = ContributionsHelper.contribution_dir(contribution)
       FileUtils.mkdir_p(dest_dir)
       FileUtils.cp(files, dest_dir)
@@ -445,14 +445,45 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
 
     context "download all files" do
-      it "downloads all files as zip when contribution contains file(s)" do
 
+      it "downloads all files as zip when contribution contains file(s)" do
         pattern = "*"
         zip_path = ContributionsHelper.export_as_zip(contribution, pattern)
         expected_zip_path = File.join(APP_CONFIG['download_tmp_dir'], "contrib_export_#{contribution.id}_")
         expect(zip_path).to start_with "#{expected_zip_path}"
-
       end
+
+      it "zip contains manifest.json" do
+        pattern = "*"
+        doc_not_found = FactoryGirl.create(:document, item: item, file_name: "file_not_found.test")
+        zip_path = ContributionsHelper.export_as_zip(contribution, pattern)
+
+        #   unzip file and check manifest.json
+        m_json_file = nil
+        unzip_dir = File.join(File.dirname(zip_path), File.basename(zip_path, ".zip"))
+        extracted_file = ContributionsHelper.unzip(zip_path, unzip_dir)
+        extracted_file.each do |f|
+          if f[:name] == "manifest.json"
+            m_json_file = f[:dest_name]
+          end
+        end
+
+        expect(File.file?(m_json_file)).to be_true
+
+        manifest_passed = false
+        m_json = JSON.parse(File.read(m_json_file))
+        m_json.each do |handle, value|
+          file_hash = value["files"]
+          file_hash.each do |f|
+            if f["name"] == "file_not_found.test" && f["size"] == "" && f["missing"] == "file not found"
+              manifest_passed = true
+            end
+          end
+        end
+
+        expect(manifest_passed).to be_true
+      end
+
     end
   end
 
@@ -471,7 +502,7 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     before do
       src_dir = "#{Rails.root}/test/samples/contributions/contrib_doc"
-      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map{|f| File.join(src_dir, f)}
+      files = [doc_1.file_name, doc_2.file_name, doc_3.file_name].map {|f| File.join(src_dir, f)}
       dest_dir = ContributionsHelper.contribution_dir(contribution)
       FileUtils.mkdir_p(ContributionsHelper.contribution_dir(contribution))
       FileUtils.cp(files, dest_dir)
@@ -479,9 +510,15 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     context "wildcard is '*'" do
       it "returns all files" do
-        files = ContributionsHelper.all_related_files(contribution, '*')
+        file_hash = ContributionsHelper.all_related_files(contribution, '*')
+        files = []
+        file_hash.each do |k, v|
+          files += v[:files]
+        end
 
-        expected_files = Document.find_all_by_item_id(item.id).map{|f| f.file_path}
+        puts "files[#{files}]"
+
+        expected_files = Document.find_all_by_item_id(item.id).map {|f| f.file_path}
 
         expected_files.each do |f|
           expect(files.include? (f)).to be_true
@@ -491,9 +528,13 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     context "wildcard is nil" do
       it "returns all files" do
-        files = ContributionsHelper.all_related_files(contribution)
+        file_hash = ContributionsHelper.all_related_files(contribution)
+        files = []
+        file_hash.each do |k, v|
+          files += v[:files]
+        end
 
-        expected_files = Document.find_all_by_item_id(item.id).map{|f| f.file_path}
+        expected_files = Document.find_all_by_item_id(item.id).map {|f| f.file_path}
 
         expected_files.each do |f|
           expect(files.include? (f)).to be_true
@@ -503,9 +544,13 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     context "wildcard is single file type" do
       it "returns all files" do
-        files = ContributionsHelper.all_related_files(contribution, '*.ps')
+        file_hash = ContributionsHelper.all_related_files(contribution, '*.ps')
+        files = []
+        file_hash.each do |k, v|
+          files += v[:files]
+        end
 
-        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.ends_with? ('.ps')}
+        expected_files = Document.find_all_by_item_id(item.id).select {|f| f.file_path.ends_with? ('.ps')}
 
         expected_files.each do |f|
           expect(files.include? (f.file_path)).to be_true
@@ -515,9 +560,13 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     context "wildcard is multi file type" do
       it "returns all files" do
-        files = ContributionsHelper.all_related_files(contribution, '*.ps, *.txt')
+        file_hash = ContributionsHelper.all_related_files(contribution, '*.ps, *.txt')
+        files = []
+        file_hash.each do |k, v|
+          files += v[:files]
+        end
 
-        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.ends_with?('.ps') || f.file_path.ends_with?('.txt')}
+        expected_files = Document.find_all_by_item_id(item.id).select {|f| f.file_path.ends_with?('.ps') || f.file_path.ends_with?('.txt')}
 
         expected_files.each do |f|
           expect(files.include? (f.file_path)).to be_true
@@ -527,9 +576,13 @@ RSpec.describe ContributionsHelper, :type => :helper do
 
     context "wildcard is particular pattern" do
       it "returns all files" do
-        files = ContributionsHelper.all_related_files(contribution, 'Rodney')
+        file_hash = ContributionsHelper.all_related_files(contribution, 'Rodney')
+        files = []
+        file_hash.each do |k, v|
+          files += v[:files]
+        end
 
-        expected_files = Document.find_all_by_item_id(item.id).select{|f| f.file_path.include?('Rodney')}
+        expected_files = Document.find_all_by_item_id(item.id).select {|f| f.file_path.include?('Rodney')}
 
         expected_files.each do |f|
           expect(files.include? (f.file_path)).to be_true

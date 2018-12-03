@@ -1,5 +1,6 @@
 require Rails.root.join('lib/rdf-sesame/hcsvlab_server.rb')
 require Rails.root.join('app/helpers/collections_helper.rb')
+require Rails.root.join('lib/item/download_items_helper')
 require 'zip'
 require 'mimemagic'
 
@@ -234,10 +235,10 @@ module ContributionsHelper
           rlt[:mode] = name_result[:mode]
 
           case rlt[:mode]
-            when "rename"
-              rlt[:message] = "Duplicated document found[#{file}]. New file would be renamed as '#{rlt[:dest_file]}'."
-            when "overwrite"
-              rlt[:message] = "Duplicated document found[#{file}]. Existing file would be overwritten as '#{rlt[:dest_file]}'."
+          when "rename"
+            rlt[:message] = "Duplicated document found[#{file}]. New file would be renamed as '#{rlt[:dest_file]}'."
+          when "overwrite"
+            rlt[:message] = "Duplicated document found[#{file}]. Existing file would be overwritten as '#{rlt[:dest_file]}'."
           end
         end
       end
@@ -767,19 +768,30 @@ module ContributionsHelper
 
     begin
       # retrieve file path
-      file_path = all_related_files(contribution, wildcard)
+      file_hash = all_related_files(contribution, wildcard)
 
-      logger.debug "export_as_zip: file_path[#{file_path}]"
+      logger.debug "export_as_zip: file_hash[#{file_hash}]"
 
-      if !file_path.any?
+      if file_hash.empty?
         raise Exception.new("cannot find any file with wildcard match: #{wildcard}")
       end
+
+      # generate manifest.json
+      m_json, file_details = manifest_json(file_hash)
+      m_json_dir = File.join(APP_CONFIG['download_tmp_dir'], "contrib_export_#{contribution.id}_#{Time.now.getutc.to_i.to_s}")
+      FileUtils.mkdir_p(m_json_dir)
+      m_json_file = File.join(m_json_dir, "manifest.json")
+      File.open(m_json_file, "w") do |f|
+        f.write(m_json.to_json)
+      end
+
+      file_details << File.absolute_path(m_json_file)
 
       # generate zip path
       zip_path = File.join(APP_CONFIG['download_tmp_dir'], "contrib_export_#{contribution.id}_#{Time.now.getutc.to_i.to_s}.zip")
 
       # zip it
-      ZipBuilder.build_simple_zip_from_files(zip_path, file_path)
+      ZipBuilder.build_simple_zip_from_files(zip_path, file_details)
 
       rlt = zip_path
     rescue Exception => e
@@ -792,14 +804,82 @@ module ContributionsHelper
     return rlt
   end
 
-  # Retrieve all related document files from related items thru collection_mappings
+  # @param [Hash] file_hash
+  # {
+  #   "item_handle_1": {
+  #     "uri": "https://.../item_name_1",
+  #     "files": [
+  #       "file full path 1",
+  #       "file full path 2"
+  #     ]
+  #   }
+  # }
   #
-  # @param contribution - specific contribution
-  # @return string array of document file_path
-  def self.all_related_files(contribution, wildcard='*')
+  # @return [Hash], [Array of String]
+  # {
+  #   "item_handle_1": {
+  #     "uri": "https://.../item_name_1",
+  #     "files": [
+  #       {
+  #         "name": "file_1.wav",
+  #         "size": "123"
+  #       },
+  #       {
+  #         "name": "file_2.wav",
+  #         "size": "345"
+  #       },
+  #       {
+  #         "name": "file_3.wav",
+  #         "size": "",
+  #         "missing": "file not found"
+  #       }
+  #     ]
+  #   }
+  # },
+  # [file_path]
+  def self.manifest_json(file_hash)
+    logger.debug "manifest_json: start - file_hash[#{file_hash}]"
+    rlt = {}
+    rlt_files = []
+
+    file_hash.each do |handle, value|
+      if !rlt.has_key? (handle)
+        rlt[handle] = {}
+      end
+
+      rlt[handle][:uri] = file_hash[handle][:uri]
+
+      files = []
+      file_hash[handle][:files].each do |file_path|
+        # 0 byte file treated as normal file
+        file_name = File.basename(file_path)
+        file = {"name" => file_name, "size" => "", "missing" => "file not found"}
+        if File.file?(file_path)
+          file = {"name" => file_name, "size" => File.absolute_path(file_path).size}
+          rlt_files << file_path
+        end
+
+        files << file
+      end
+
+      rlt[handle][:files] = files
+    end
+
+    logger.debug "manifest_json: end - rlt[#{rlt}], rlt_files[#{rlt_files}]"
+
+    return rlt, rlt_files
+
+  end
+
+  # Retrieve all related document files from related items thru collection_mappings.
+  #
+  # @param [Contribution] contribution - specific contribution
+  # @param [String] wildcard
+  # @return [Hash] {item_handle => {:uri => item uri, :files => [document file_path]} }
+  def self.all_related_files(contribution, wildcard = '*')
     logger.debug "all_related_files: start - contribution[#{contribution}], wildcard[#{wildcard}]"
 
-    rlt = []
+    rlt = {}
 
     # convert wildcard
     if wildcard.nil?
@@ -811,17 +891,36 @@ module ContributionsHelper
 
     if !contribution.nil?
       sql = %(
-        select distinct d.file_path
+        select distinct i.handle, i.uri, d.file_path
         from contribution_mappings cm, documents d, items i
         where
-          contribution_id=#{contribution.id}
-          and cm.item_id=d.item_id
+          cm.contribution_id=#{contribution.id}
+          and cm.item_id=i.id
+          and i.id=d.item_id
           and lower(d.file_name) similar to '%(#{wildcard})%';
       )
 
       result = ActiveRecord::Base.connection.execute(sql)
-      if result.count > 0
-        rlt = result.map{|e| e["file_path"]}
+      # if result.count > 0
+      #   rlt = result.map{|e| e["file_path"]}
+      # end
+
+      result.each do |row|
+        handle = row["handle"]
+        uri = row["uri"]
+        file_path = row["file_path"]
+
+        if !rlt.has_key? (handle)
+          rlt[handle] = {}
+        end
+
+        rlt[handle][:uri] = uri
+
+        if !rlt[handle].has_key? (:files)
+          rlt[handle][:files] = []
+        end
+
+        rlt[handle][:files] << file_path
       end
     end
 

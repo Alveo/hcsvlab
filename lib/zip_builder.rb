@@ -2,7 +2,13 @@ require 'zip/zip'
 
 class ZipBuilder
 
+  # Build zip from files.
+  #
+  # @param zip_path destination zip file
+  # @param file_details files to be zipped
+  # @return [Object]
   def self.build_simple_zip_from_files(zip_path, file_details)
+
     file_size = 0
 
     Zip::ZipFile.open(zip_path, Zip::ZipFile::CREATE) do |zipfile|
@@ -39,10 +45,10 @@ class ZipBuilder
 
   def self.process_directory(zos, rootPath, directoryPath)
     dir_name = File.basename(directoryPath)
-    all_files = Dir.foreach(directoryPath).reject { |f| f.starts_with?(".") }
+    all_files = Dir.foreach(directoryPath).reject {|f| f.starts_with?(".")}
     all_files.each do |file|
       filePath = "#{directoryPath}/#{file}"
-      newRootPath = (rootPath.nil?)? dir_name : "#{rootPath}/#{dir_name}"
+      newRootPath = (rootPath.nil?) ? dir_name : "#{rootPath}/#{dir_name}"
       if File.directory?(filePath)
         process_directory(zos, newRootPath, filePath)
       else
@@ -54,7 +60,7 @@ class ZipBuilder
   def self.add_single_file(zos, rootPath, path)
 
     # Single file processing
-    entry = (rootPath.nil?)?File.basename(path) :"#{rootPath}/#{File.basename(path)}"
+    entry = (rootPath.nil?) ? File.basename(path) : "#{rootPath}/#{File.basename(path)}"
 
     zos.put_next_entry(entry)
     begin
@@ -72,7 +78,7 @@ class ZipBuilder
     end
   end
 
-  def self.each_chunk(file, chunk_size=1024)
+  def self.each_chunk(file, chunk_size = 1024)
     yield file.read(chunk_size) until file.eof?
   end
 end

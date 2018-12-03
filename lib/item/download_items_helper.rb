@@ -61,7 +61,7 @@ module Item::DownloadItemsHelper
     else
       filtered_filenames = []
       filenames.each do |filename|
-        if filter == 'no extension' and File.extname(filename) == ""
+        if filter == 'no extension' && File.extname(filename) == ""
           filtered_filenames << filename
         else
           filtered_filenames.push filename if File.fnmatch(filter, File.basename(filename), File::FNM_EXTGLOB)
@@ -190,6 +190,9 @@ module Item::DownloadItemsHelper
     #
     # Retrieve filenames from documents.file_path thru items. Would remove duplicated filenames.
     #
+    # @param [String] item_handles
+    # @param [String] document_filter
+    # @return [Array of String]
     def get_filenames_from_item(item_handles, document_filter)
       logger.debug "get_filenames_from_item: start - item_handles[#{item_handles}], document_filter[#{document_filter}]"
 
@@ -220,6 +223,9 @@ module Item::DownloadItemsHelper
       rlt
     end
 
+    # @param [Array of String] item_handles
+    # @param [String] document_filter
+    # @return [String]
     def zip_as_flat(item_handles, document_filter)
       rlt = nil
 

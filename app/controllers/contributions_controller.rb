@@ -1,6 +1,7 @@
 require Rails.root.join('lib/api/response_error')
 require Rails.root.join('lib/api/request_validator')
 
+
 class ContributionsController < ApplicationController
 
   before_filter :authenticate_user!, :except => [:index]
@@ -123,12 +124,16 @@ class ContributionsController < ApplicationController
 
       # extract files type
       @doc_filetypes = {}
-      files = ContributionsHelper.all_related_files(@contribution)
-      files.each do |f|
-        ext = File.extname(f)
-        # if file has no ext, ext is ""
-        # if user export file type "no extension", wildcard is '*', then download all files
-        @doc_filetypes[ext] = (@doc_filetypes[ext].nil? ? 1 : @doc_filetypes[ext]+1)
+      file_hash = ContributionsHelper.all_related_files(@contribution)
+
+      file_hash.each do |handle, value|
+        files = file_hash[handle][:files]
+        files.each do |f|
+          ext = File.extname(f)
+          # if file has no ext, ext is ""
+          # if user export file type "no extension", wildcard is '*', then download all files
+          @doc_filetypes[ext] = (@doc_filetypes[ext].nil? ? 1 : @doc_filetypes[ext]+1)
+        end
       end
 
       # load mapping data
