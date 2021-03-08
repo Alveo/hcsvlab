@@ -6,6 +6,13 @@ common: &common
   pool: 5
   timeout: 5000
 
+docker: &docker
+  <<: *common
+  host: db
+  username: postgres
+  password:
+  database: hcsvlab
+
 development:
   <<: *common
   database: hcsvlab
@@ -15,7 +22,7 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test: &test
-  <<: *common
+  <<: *docker
   database: hcsvlab_test
 
 staging:
@@ -50,9 +57,3 @@ trove:
   <<: *common
   database: hcsvlab
 
-docker:
-  <<: *common
-  host: db
-  username: postgres
-  password:
-  database: hcsvlab

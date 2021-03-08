@@ -65,3 +65,17 @@ docker-compose logs -f
 If it works you should be able to connect to http://localhost:3000/ to see the Alveo app.
 
 
+Running Tests
+---
+
+Aim to be able to run tests inside docker container.  One issue is that the
+tests assume RAILS_ENV=test so we need to override that to have the settings
+from docker rather than from common - this will clobber non-docker testing.
+
+```
+docker-compose run web bundle exec rake db:create db:migrate db:test:prepare
+```
+
+```
+docker-compose run -e "RAILS_ENV=test" web rspec rspec
+```

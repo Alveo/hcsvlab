@@ -7,7 +7,7 @@ development:
   <<: *common
 
 test: &TEST
-  url: http://localhost:8983/openrdf-sesame
+  url: http://sesame:8080/openrdf-sesame
   <<: *common
 
 qa:

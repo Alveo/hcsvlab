@@ -16,8 +16,9 @@ development:
 
 test:
   <<: *common
-  adapter: test
+  adapter: stomp
   reliable: false
+  host: activemq
 
 qa:
   <<: *common

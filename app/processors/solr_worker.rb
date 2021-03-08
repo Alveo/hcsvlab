@@ -84,6 +84,7 @@ class Solr_Worker < ApplicationProcessor
           error("Solr Worker", e.message)
           error("Solr Worker", e.backtrace)
           # Create when necessary rather than leaving an open connection for each worker
+          puts STOMP_CONFIG
           stomp_client = Stomp::Client.open "#{STOMP_CONFIG['adapter']}://#{STOMP_CONFIG['host']}:#{STOMP_CONFIG['port']}"
           stomp_client.publish('alveo.solr.worker.dlq', message)
           stomp_client.close
@@ -697,6 +698,7 @@ private
   #
   def delete(object)
     get_solr_connection
+    logger.debug "SOLR CONFIG: #{@@solr_config}"
     @@solr.delete_by_id(object)
     @@solr.commit
   end

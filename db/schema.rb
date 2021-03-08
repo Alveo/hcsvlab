@@ -128,7 +128,7 @@ ActiveRecord::Schema.define(:version => 20181016220849) do
 
   create_table "item_list_properties", :force => true do |t|
     t.string   "property"
-    t.string   "value"
+    t.text     "value"
     t.integer  "item_list_id"
     t.datetime "created_at",   :null => false
     t.datetime "updated_at",   :null => false
