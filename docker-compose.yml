@@ -16,9 +16,12 @@ services:
     - sesame
     - activemq
   db:
-    image: postgres
+    image: postgres:9
+    environment:
+      POSTGRES_PASSWORD: "hcsvlab"
     volumes:
-    - ./tmp/db:/var/lib/postgresql/data
+      - ./tmp/db:/var/lib/postgresql/data
+      - ./db/import:/docker-entrypoint-initdb.d
   sesame:
     # https://hub.docker.com/r/subotic/openrdf-sesame
     image: subotic/openrdf-sesame

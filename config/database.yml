@@ -9,8 +9,8 @@ common: &common
 docker: &docker
   <<: *common
   host: db
-  username: postgres
-  password:
+  username: hcsvlab
+  password: hcsvlab
   database: hcsvlab
 
 development:
