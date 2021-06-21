@@ -20,6 +20,16 @@ GIT
       json_pure (~> 1.8)
       rdf (~> 1.1)
 
+PATH
+  remote: vendor/gems/logger-1.2.8
+  specs:
+    logger (1.2.8)
+
+PATH
+  remote: vendor/gems/mimemagic-0.2.0
+  specs:
+    mimemagic (0.2.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -291,7 +301,6 @@ GEM
       rdf-trig (>= 1.0.0.beta3)
       rdf-trix (>= 1.0)
       rdf-turtle (>= 1.0.4)
-    logger (1.2.8)
     mail (2.5.4)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
@@ -299,7 +308,6 @@ GEM
     mediashelf-loggable (0.4.9)
     method_source (0.8.1)
     mime-types (1.25.1)
-    mimemagic (0.2.0)
     mini_magick (4.6.0)
     mini_portile2 (2.2.0)
     multi_json (1.12.2)
@@ -608,7 +616,8 @@ DEPENDENCIES
   kramdown
   launchy
   linkeddata (~> 1.0.0)
-  mimemagic
+  logger (= 1.2.8)!
+  mimemagic (= 0.2.0)!
   mini_magick
   nokogiri
   pg
@@ -659,4 +668,4 @@ RUBY VERSION
    ruby 2.1.4p265
 
 BUNDLED WITH
-   1.16.1
+   1.17.3

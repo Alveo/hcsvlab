@@ -1,6 +1,10 @@
 source 'https://rubygems.org'
 
 ruby "2.1.4"
+
+gem "logger", "1.2.8", path: "vendor/gems/logger-1.2.8"
+gem "mimemagic", "0.2.0", path: "vendor/gems/mimemagic-0.2.0"
+
 gem 'rails', '~> 3.2.18'
 gem 'pg'
 
@@ -102,7 +106,7 @@ gem 'solrizer'
 gem 'rsolr'
 gem "xml-simple"
 gem 'nokogiri'
-gem 'mimemagic'
+
 # gem for showing tabs on pages
 gem "tabs_on_rails"
 gem 'colorize'
