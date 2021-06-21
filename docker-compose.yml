@@ -1,20 +1,23 @@
 version: '3'
 services:
   web:
-    build: .
+    # build: .
+    image: localhost:5000/alveolab
     environment:
       RAILS_ENV: "docker"
+    # command: bundle exec rake db:migrate
     command: bundle exec rails s -p 3000 -b '0.0.0.0'
+    # command: /bin/bash
     volumes:
-    - .:/myapp
-    - ./tmp/webdata:/data
+      - .:/myapp
+      - ./tmp/webdata:/data
     ports:
-    - "3000:3000"
+      - "3000:3000"
     depends_on:
-    - db
-    - solr
-    - sesame
-    - activemq
+      - db
+      - solr
+      - sesame
+      - activemq
   db:
     image: postgres:9
     environment:
