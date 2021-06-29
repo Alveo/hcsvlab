@@ -27,3 +27,6 @@ staging:
 
 staging2:
   <<: *defaults
+
+docker:
+  <<: *defaults

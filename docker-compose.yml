@@ -29,10 +29,10 @@ services:
     # https://hub.docker.com/r/subotic/openrdf-sesame
     image: subotic/openrdf-sesame
     volumes:
+      - ./config/tomcat-users.xml:/tomcat/conf/tomcat-users.xml
       - ./tmp/sesame:/data
     ports:
       - "8080:8080"
-    # add volume for data store
   activemq:
     # https://hub.docker.com/r/webcenter/activemq/
     image: webcenter/activemq
